@@ -1,0 +1,39 @@
+[
+  {
+    "Semester": "1",
+    "Fach": "Beispielfach",
+    "Thema": "Erste Schritte",
+    "Quiz-Möglichkeit": "MC, FC",
+    "Frage": "Welche Zahl ist gerade?",
+    "Antwortoption A": "3",
+    "Antwortoption B": "4",
+    "Antwortoption C": "5",
+    "Antwortoption D": "7",
+    "Korrekte-Antwort": "B",
+    "Erklärung": "4 lässt sich ohne Rest durch 2 teilen.",
+    "Eingabe": ""
+  },
+  {
+    "Semester": "1",
+    "Fach": "Beispielfach",
+    "Thema": "Erste Schritte",
+    "Quiz-Möglichkeit": "BE",
+    "Frage": "Wie lautet das Ergebnis von 2 + 3?",
+    "Eingabe": [
+      "5",
+      "fünf"
+    ],
+    "Korrekte-Antwort": "",
+    "Erklärung": "Zwei plus drei ergibt fünf."
+  },
+  {
+    "Semester": "1",
+    "Fach": "Beispielfach",
+    "Thema": "Erste Schritte",
+    "Quiz-Möglichkeit": "RF",
+    "Frage": "Ein Byte besteht aus acht Bits.",
+    "Korrekte-Antwort": "Richtig",
+    "Eingabe": "",
+    "Erklärung": "Ein Byte umfasst acht Bits."
+  }
+]
