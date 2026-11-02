@@ -39,6 +39,3 @@ Eine lokal gesicherte Antwort kann noch auf den Cloud-Abgleich warten. Abmelden 
 
 [PRUEFUNG-UND-GRENZEN.md](docs/PRUEFUNG-UND-GRENZEN.md) beschreibt den Prüfstand und bekannte Einschränkungen. Historische projektgebundene Reparaturwerkzeuge sind nicht Teil dieser Vorlage.
 
-## Lizenz
-
-Die Projektlizenz wird von der Autorin noch festgelegt. Eine LICENSE-Datei folgt nach dieser Entscheidung. Vor öffentlicher Freigabe diesen Abschnitt entsprechend aktualisieren. Lizenzen der npm-Abhängigkeiten sind gesondert zu beachten.
