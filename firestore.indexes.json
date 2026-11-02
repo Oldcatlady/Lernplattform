@@ -1,0 +1,15 @@
+{
+  "indexes": [],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "learningState",
+      "fieldPath": "entries",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "privateContent",
+      "fieldPath": "questions",
+      "indexes": []
+    }
+  ]
+}

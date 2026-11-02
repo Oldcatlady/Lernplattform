@@ -1,0 +1,1217 @@
+
+<!-- DOKU: Wiederverwendbares Fragment für Navigation und Theme-Auswahl. Dashboard und Statistik laden Markup, Styles und Skript über loadGlobalHeader nach. -->
+<!-- =====================================================================
+     FIAE TRAINER – GLOBALER HEADER
+     =====================================================================
+
+     DATEINAME:
+         header-global.html
+
+     FUNKTION:
+         Dieser Header ist die zentrale Navigation des FIAE Trainers.
+
+         Er wird von den einzelnen Seiten dynamisch geladen.
+
+     ENTHALTEN:
+         - globaler Header
+         - FIAE TRAINER Logo
+         - Theme-Button
+         - Hamburger-Menü
+         - Navigation
+         - Theme-System
+         - Theme-Animationen
+         - Speicherung des Themes in localStorage
+
+     NICHT ENTHALTEN:
+         - Firebase Initialisierung
+         - Firebase Authentication
+         - Logout selbst
+         - seitenabhängige Quizlogik
+
+     WICHTIG:
+         Diese Datei wird NICHT als vollständige Seite geöffnet.
+         Sie wird von den jeweiligen Seiten geladen.
+
+     ===================================================================== -->
+
+
+<style>
+/* DOKU: Die eingebetteten Styles legen Seitenlayout, Theme-Farben und Zustände der Bedienelemente fest. CSS-Klassen wie hidden, correct oder wrong werden vom Seitenskript gesetzt; sie übernehmen keine Zugriffsprüfung. */
+
+/* =====================================================================
+   GLOBALE HEADER-VARIABLEN
+   ===================================================================== */
+
+:root {
+
+    --header-bg: rgba(255, 255, 255, 0.9);
+
+    --theme-ring: var(--accent);
+
+    --menu-btn-bg: rgba(255, 255, 255, 0.9);
+
+    --menu-btn-fg: var(--text-main);
+
+}
+
+
+/* =====================================================================
+   THEME-SYSTEM
+   ===================================================================== */
+
+#theme-fx {
+
+    position: fixed;
+
+    inset: 0;
+
+    overflow: hidden;
+
+    z-index: -1;
+
+    pointer-events: none;
+
+}
+
+
+/* ---------------------------------------------------------------------
+   THEME: EINHORN
+   --------------------------------------------------------------------- */
+
+body.theme-einhorn {
+
+    --text-main: #3b1550;
+
+    --text-muted: #7a5b95;
+
+    --accent: #ff5ca8;
+
+    --accent-hover: #e84e94;
+
+    --header-bg: #cab0e5;
+
+    --theme-ring: #ff9ecb;
+
+    --menu-btn-bg: #ffd9ac;
+
+    --menu-btn-fg: #ffbaba;
+
+    --card-bg: #ffeef5;
+
+    --card-a: #fbc3df;
+
+    --card-b: #ffe3c2;
+
+    background: #2a1b3d;
+
+}
+
+
+body.theme-einhorn #theme-fx {
+
+    background: linear-gradient(
+        120deg,
+        #ff9a9e,
+        #fad0c4,
+        #fbc2eb,
+        #a18cd1,
+        #8fd3f4,
+        #ff9a9e
+    );
+
+    background-size: 400% 400%;
+
+    animation: rainbowShift 18s ease infinite;
+
+}
+
+
+@keyframes rainbowShift {
+
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+
+}
+
+
+body.theme-einhorn .particle {
+
+    position: absolute;
+
+    border-radius: 50%;
+
+    animation: floatDrift ease-in-out infinite;
+
+}
+
+
+@keyframes floatDrift {
+
+    0%,
+    100% {
+
+        transform:
+            translate(0, 0)
+            scale(0.8);
+
+        opacity: 0.35;
+
+    }
+
+    50% {
+
+        transform:
+            translate(
+                var(--dx, 10px),
+                var(--dy, -16px)
+            )
+            scale(1.25);
+
+        opacity: 1;
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------------------
+   THEME: HIMALAYA
+   --------------------------------------------------------------------- */
+
+body.theme-himalaya {
+
+    --text-main: #173b45;
+
+    --text-muted: #4c7a86;
+
+    --accent: #3fb6c9;
+
+    --accent-hover: #2f9dae;
+
+    --header-bg: #e6f0fb;
+
+    --theme-ring: #4fc1c9;
+
+    --menu-btn-bg: #ded1f5;
+
+    --menu-btn-fg: #1f3a4a;
+
+    --card-bg: #f5fcff;
+
+    --card-a: #eef9ff;
+
+    --card-b: #f5f2ff;
+
+    background: #cdeef5;
+
+}
+
+
+body.theme-himalaya #theme-fx {
+
+    background: linear-gradient(
+        180deg,
+        #cdeef5 0%,
+        #eaf6f2 55%,
+        #fffdf6 100%
+    );
+
+}
+
+
+body.theme-himalaya .particle {
+
+    position: absolute;
+
+    top: -8%;
+
+    font-size: 14px;
+
+    animation: snowfall linear infinite;
+
+}
+
+
+@keyframes snowfall {
+
+    to {
+
+        transform:
+            translateY(115vh)
+            translateX(24px);
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------------------
+   THEME: DSCHUNGEL
+   --------------------------------------------------------------------- */
+
+body.theme-dschungel {
+
+    --text-main: #abfeab;
+
+    --text-muted: #9db99f;
+
+    --accent: #e8622c;
+
+    --accent-hover: #c94f20;
+
+    --correct: #5fce7a;
+
+    --wrong: #ff6b6b;
+
+    --header-bg: #17301f;
+
+    --theme-ring: #f0b25e;
+
+    --menu-btn-bg: #fa7319b1;
+
+    --menu-btn-fg: #f3cd8e;
+
+    --card-bg: #122318;
+
+    --card-a: #163e24;
+
+    --card-b: #1c2a16;
+
+    background: #0d1b12;
+
+}
+
+
+body.theme-dschungel #theme-fx {
+
+    background:
+
+        radial-gradient(
+            circle at 18% 20%,
+            rgba(232, 98, 44, 0.28),
+            transparent 42%
+        ),
+
+        radial-gradient(
+            circle at 82% 28%,
+            rgba(155, 60, 200, 0.22),
+            transparent 46%
+        ),
+
+        radial-gradient(
+            circle at 50% 92%,
+            rgba(255, 150, 30, 0.16),
+            transparent 50%
+        ),
+
+        #0d1b12;
+
+}
+
+
+body.theme-dschungel .particle {
+
+    position: absolute;
+
+    border-radius: 50%;
+
+    filter: blur(22px);
+
+    animation: glowPulse 6s ease-in-out infinite;
+
+}
+
+
+@keyframes glowPulse {
+
+    0%,
+    100% {
+
+        opacity: 0.35;
+
+    }
+
+    50% {
+
+        opacity: 0.75;
+
+    }
+
+}
+
+
+/* =====================================================================
+   REDUZIERTE BEWEGUNG
+   ===================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+
+    #theme-fx,
+    .particle {
+
+        animation: none !important;
+
+    }
+
+}
+
+
+/* =====================================================================
+   HEADER
+   ===================================================================== */
+
+#globalHeader {
+
+    height: 70px;
+
+    background: var(--header-bg);
+
+    border-bottom:
+        1px solid var(--border);
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    padding:
+        0 28px;
+
+    position: sticky;
+
+    top: 0;
+
+    z-index: 100;
+
+    backdrop-filter: blur(6px);
+
+}
+
+
+#globalHeader .header-left,
+#globalHeader .header-right {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+}
+
+
+#globalHeader .logo {
+
+    font-size: 22px;
+
+    font-weight: 700;
+
+    letter-spacing: 0.5px;
+
+    margin-right: 20px;
+
+    color: var(--accent);
+
+}
+
+
+/* =====================================================================
+   THEME-BUTTON
+   ===================================================================== */
+
+#themeButton {
+
+    width: 42px;
+
+    height: 42px;
+
+    padding: 0;
+
+    border-radius: 50%;
+
+    background:
+        conic-gradient(
+            from 0deg,
+            #ff5ca8,
+            #3fb6c9,
+            #e8622c,
+            #ff5ca8
+        );
+
+    border:
+        3px solid var(--theme-ring);
+
+    box-shadow:
+        0 0 0 1px var(--border);
+
+    cursor: pointer;
+
+}
+
+
+/* =====================================================================
+   HAMBURGER
+   ===================================================================== */
+
+#menuButton {
+
+    width: 44px;
+
+    height: 42px;
+
+    padding: 0;
+
+    border:
+        1px solid
+        color-mix(
+            in srgb,
+            var(--menu-btn-fg) 25%,
+            transparent
+        );
+
+    border-radius: 9px;
+
+    background: var(--menu-btn-bg);
+
+    color: var(--menu-btn-fg);
+
+    cursor: pointer;
+
+    font-size: 22px;
+
+}
+
+
+/* =====================================================================
+   SEITENMENÜ
+   ===================================================================== */
+
+#sideMenu {
+
+    position: fixed;
+
+    top: 70px;
+
+    right: 0;
+
+    width: 280px;
+
+    min-height:
+        calc(100vh - 70px);
+
+    background: var(--header-bg);
+
+    border-left:
+        1px solid var(--border);
+
+    box-shadow:
+        var(--shadow);
+
+    padding: 25px;
+
+    transform:
+        translateX(100%);
+
+    transition:
+        transform 0.2s ease;
+
+    z-index: 90;
+
+}
+
+
+#sideMenu.open {
+
+    transform:
+        translateX(0);
+
+}
+
+
+#sideMenu h2 {
+
+    font-size: 18px;
+
+    margin-bottom: 20px;
+
+    color: var(--text-main);
+
+}
+
+
+/* =====================================================================
+   MENÜ-ELEMENTE
+   ===================================================================== */
+
+.menu-item {
+
+    display: block;
+
+    width: 100%;
+
+    text-align: left;
+
+    border: none;
+
+    background: transparent;
+
+    color: var(--text-main);
+
+    padding:
+        13px 10px;
+
+    border-radius: 7px;
+
+    cursor: pointer;
+
+    font-size: 15px;
+
+    text-decoration: none;
+
+}
+
+
+.menu-item:hover {
+
+    background:
+        color-mix(
+            in srgb,
+            var(--accent) 12%,
+            transparent
+        );
+
+}
+
+
+/* =====================================================================
+   RESPONSIVE HEADER
+   ===================================================================== */
+
+@media (max-width: 700px) {
+
+    #globalHeader {
+
+        padding:
+            0 15px;
+
+    }
+
+    #globalHeader .logo {
+
+        margin-right: 5px;
+
+        font-size: 19px;
+
+    }
+
+    #sideMenu {
+
+        width: min(
+            280px,
+            85vw
+        );
+
+    }
+
+}
+
+</style>
+
+
+<!-- =====================================================================
+     HINTERGRUND / THEME-EFFEKTE
+     ===================================================================== -->
+
+<div id="theme-fx"></div>
+
+
+<!-- =====================================================================
+     GLOBALER HEADER
+     ===================================================================== -->
+
+<header id="globalHeader">
+
+    <div class="header-left">
+
+        <a
+            href="quizBit.html"
+            class="logo"
+            aria-label="FIAE Trainer – Dashboard">
+
+            FIAE TRAINER
+
+        </a>
+
+
+        <button
+            id="themeButton"
+            type="button"
+            title="Theme wechseln"
+            aria-label="Theme wechseln">
+
+        </button>
+
+    </div>
+
+
+    <div class="header-right">
+
+        <button
+            id="menuButton"
+            type="button"
+            aria-label="Menü öffnen"
+            aria-expanded="false">
+
+            ☰
+
+        </button>
+
+    </div>
+
+</header>
+
+
+<!-- =====================================================================
+     GLOBALES NAVIGATIONSMENÜ
+     ===================================================================== -->
+
+<nav
+    id="sideMenu"
+    aria-label="Hauptnavigation">
+
+    <h2>Menü</h2>
+
+
+    <a
+        class="menu-item"
+        href="quizBit.html">
+
+        Dashboard
+
+    </a>
+
+
+    <a
+        class="menu-item"
+        href="statistik.html">
+
+        Statistik
+
+    </a>
+
+
+    
+
+
+    
+
+
+    
+
+
+    
+
+
+    
+
+
+    
+
+
+    <button
+        class="menu-item"
+        id="globalLogoutButton"
+        type="button">
+
+        Logout
+
+    </button>
+
+</nav>
+
+
+<script>
+
+/* =====================================================================
+   GLOBALER HEADER – JAVASCRIPT
+   ===================================================================== */
+
+
+/* ---------------------------------------------------------------------
+   ELEMENTE
+   --------------------------------------------------------------------- */
+
+const globalThemeButton =
+    document.getElementById("themeButton");
+
+const globalMenuButton =
+    document.getElementById("menuButton");
+
+const globalSideMenu =
+    document.getElementById("sideMenu");
+
+const globalThemeFx =
+    document.getElementById("theme-fx");
+
+const globalLogoutButton =
+    document.getElementById("globalLogoutButton");
+
+
+/* =====================================================================
+   THEMES
+   ===================================================================== */
+
+const globalThemes = [
+
+    "theme-einhorn",
+    "theme-himalaya",
+    "theme-dschungel"
+
+];
+
+
+let globalCurrentTheme = 0;
+
+
+/* =====================================================================
+   PARTICLES
+   ===================================================================== */
+
+const globalEinhornParticleColors = [
+
+    "#e0f3ff",
+    "#f0e4ff",
+    "#ffe9c9",
+    "#ffffff"
+
+];
+
+
+const globalEinhornParticleSizes = [
+
+    2,
+    4,
+    6,
+    8
+
+];
+
+
+/* DOKU: Erzeugt dekorative Theme-Partikel. Der Inhalt wird lokal aufgebaut und enthält keine Fragen- oder Kontodaten. */
+function generateGlobalParticles(theme) {
+
+    globalThemeFx.innerHTML = "";
+
+
+    /* -----------------------------------------------------------------
+       EINHORN
+       ----------------------------------------------------------------- */
+
+    if (theme === "theme-einhorn") {
+
+        for (
+            let i = 0;
+            i < 36;
+            i++
+        ) {
+
+            const particle =
+                document.createElement("div");
+
+            particle.className =
+                "particle";
+
+
+            const color =
+                globalEinhornParticleColors[
+                    i %
+                    globalEinhornParticleColors.length
+                ];
+
+
+            const size =
+                globalEinhornParticleSizes[
+                    Math.floor(
+                        Math.random() *
+                        globalEinhornParticleSizes.length
+                    )
+                ];
+
+
+            particle.style.width =
+                size + "px";
+
+            particle.style.height =
+                size + "px";
+
+            particle.style.left =
+                Math.random() * 100 + "%";
+
+            particle.style.top =
+                Math.random() * 100 + "%";
+
+            particle.style.background =
+                color;
+
+            particle.style.boxShadow =
+                "0 0 " +
+                (size + 3) +
+                "px 2px " +
+                color +
+                "cc";
+
+
+            particle.style.setProperty(
+                "--dx",
+                (
+                    Math.random() * 30 - 15
+                ) + "px"
+            );
+
+
+            particle.style.setProperty(
+                "--dy",
+                -(
+                    12 +
+                    Math.random() * 22
+                ) + "px"
+            );
+
+
+            particle.style.animationDuration =
+                (
+                    3 +
+                    Math.random()
+                ) + "s";
+
+
+            particle.style.animationDelay =
+                (
+                    Math.random() * 1.5
+                ) + "s";
+
+
+            globalThemeFx.appendChild(
+                particle
+            );
+
+        }
+
+    }
+
+
+    /* -----------------------------------------------------------------
+       HIMALAYA
+       ----------------------------------------------------------------- */
+
+    else if (
+        theme === "theme-himalaya"
+    ) {
+
+        for (
+            let i = 0;
+            i < 45;
+            i++
+        ) {
+
+            const particle =
+                document.createElement("div");
+
+            particle.className =
+                "particle";
+
+            particle.textContent =
+                "❄";
+
+
+            particle.style.left =
+                Math.random() * 100 + "%";
+
+            particle.style.color =
+                Math.random() > 0.6
+                    ? "#cfe9f2"
+                    : "#ffffff";
+
+            particle.style.textShadow =
+                "0 0 4px rgba(255,255,255,0.9)";
+
+            particle.style.fontSize =
+                (
+                    10 +
+                    Math.random() * 10
+                ) + "px";
+
+            particle.style.opacity =
+                0.5 +
+                Math.random() * 0.5;
+
+            particle.style.animationDuration =
+                (
+                    8 +
+                    Math.random() * 10
+                ) + "s";
+
+            particle.style.animationDelay =
+                (
+                    Math.random() * 10
+                ) + "s";
+
+
+            globalThemeFx.appendChild(
+                particle
+            );
+
+        }
+
+    }
+
+
+    /* -----------------------------------------------------------------
+       DSCHUNGEL
+       ----------------------------------------------------------------- */
+
+    else if (
+        theme === "theme-dschungel"
+    ) {
+
+        const glowColors = [
+
+            "#e8622c",
+            "#9b3cc8",
+            "#ff961e",
+            "#5fce7a"
+
+        ];
+
+
+        for (
+            let i = 0;
+            i < 6;
+            i++
+        ) {
+
+            const particle =
+                document.createElement("div");
+
+            particle.className =
+                "particle";
+
+
+            const size =
+                140 +
+                Math.random() * 160;
+
+
+            particle.style.width =
+                size + "px";
+
+            particle.style.height =
+                size + "px";
+
+            particle.style.left =
+                Math.random() * 100 + "%";
+
+            particle.style.top =
+                Math.random() * 100 + "%";
+
+            particle.style.background =
+                glowColors[
+                    i %
+                    glowColors.length
+                ];
+
+            particle.style.animationDelay =
+                (
+                    Math.random() * 6
+                ) + "s";
+
+
+            globalThemeFx.appendChild(
+                particle
+            );
+
+        }
+
+    }
+
+}
+
+
+/* =====================================================================
+   THEME ANWENDEN
+   ===================================================================== */
+
+/* DOKU: Schaltet Theme-Klassen und Dekoration um und merkt die Auswahl in localStorage unter lernhubTheme. Die Quizseiten lesen dieselbe Einstellung. */
+function applyGlobalTheme(theme) {
+
+    document.body.classList.remove(
+        ...globalThemes
+    );
+
+
+    document.body.classList.add(
+        theme
+    );
+
+
+    generateGlobalParticles(
+        theme
+    );
+
+
+    localStorage.setItem(
+        "lernhubTheme",
+        theme
+    );
+
+}
+
+
+/* =====================================================================
+   THEME-BUTTON
+   ===================================================================== */
+
+globalThemeButton.addEventListener(
+    "click",
+    () => {
+
+        globalCurrentTheme =
+            (
+                globalCurrentTheme + 1
+            ) %
+            globalThemes.length;
+
+
+        applyGlobalTheme(
+            globalThemes[
+                globalCurrentTheme
+            ]
+        );
+
+    }
+);
+
+
+/* =====================================================================
+   GESPEICHERTES THEME LADEN
+   ===================================================================== */
+
+const savedGlobalTheme =
+    localStorage.getItem(
+        "lernhubTheme"
+    );
+
+
+const savedGlobalIndex =
+    savedGlobalTheme
+        ? globalThemes.indexOf(
+            savedGlobalTheme
+        )
+        : 0;
+
+
+globalCurrentTheme =
+    savedGlobalIndex !== -1
+        ? savedGlobalIndex
+        : 0;
+
+
+applyGlobalTheme(
+    globalThemes[
+        globalCurrentTheme
+    ]
+);
+
+
+/* =====================================================================
+   HAMBURGER-MENÜ
+   ===================================================================== */
+
+globalMenuButton.addEventListener(
+    "click",
+    () => {
+
+        const isOpen =
+            globalSideMenu.classList.toggle(
+                "open"
+            );
+
+
+        globalMenuButton.setAttribute(
+            "aria-expanded",
+            isOpen
+        );
+
+    }
+);
+
+
+/* =====================================================================
+   MENÜ SCHLIESSEN, WENN AUSSERHALB GEKLICKT WIRD
+   ===================================================================== */
+
+document.addEventListener(
+    "click",
+    (event) => {
+
+        if (
+            !globalSideMenu.contains(event.target) &&
+            !globalMenuButton.contains(event.target)
+        ) {
+
+            globalSideMenu.classList.remove(
+                "open"
+            );
+
+            globalMenuButton.setAttribute(
+                "aria-expanded",
+                "false"
+            );
+
+        }
+
+    }
+);
+
+
+/* =====================================================================
+   LOGOUT
+   ---------------------------------------------------------------------
+
+   Der Header führt Firebase NICHT selbst aus.
+
+   Stattdessen sendet er ein eigenes Event.
+
+   Die jeweilige Seite kann dieses Event abfangen und dort ihren
+   bereits vorhandenen Firebase-Logout verwenden.
+
+   ===================================================================== */
+
+if (globalLogoutButton) {
+
+    globalLogoutButton.addEventListener(
+        "click",
+        () => {
+
+            window.dispatchEvent(
+                new CustomEvent(
+                    "fiaeTrainerLogout"
+                )
+            );
+
+        }
+    );
+
+}
+
+</script>

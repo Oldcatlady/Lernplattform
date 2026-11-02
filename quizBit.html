@@ -1,0 +1,1990 @@
+<!DOCTYPE html>
+<!-- DOKU: Dashboard zur Auswahl von Semester, Fach, Thema, Quiztyp, Anzahl und Lernbedarf. Es übergibt die Runde per sessionStorage an die passende Quizseite. -->
+
+<html lang="de">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+    <title>FIAE Trainer – Dashboard</title>
+
+
+    <!-- ============================================================
+         FOOTER
+         ------------------------------------------------------------
+         Diese CSS-Datei gehört zur zentralen Footer-Struktur.
+         Sie wird auf den geschützten Hauptseiten eingebunden.
+         ============================================================ -->
+
+    <link
+        rel="stylesheet"
+        href="/footer-style.css">
+
+
+    <style>
+/* DOKU: Die eingebetteten Styles legen Seitenlayout, Theme-Farben und Zustände der Bedienelemente fest. CSS-Klassen wie hidden, correct oder wrong werden vom Seitenskript gesetzt; sie übernehmen keine Zugriffsprüfung. */
+
+        /* ============================================================
+           GRUNDSTRUKTUR
+           ============================================================ */
+
+        * {
+
+            box-sizing: border-box;
+
+            margin: 0;
+
+            padding: 0;
+
+        }
+
+
+        :root {
+
+            --card-bg:
+                rgba(255, 255, 255, 0.94);
+
+            --card-a:
+                #ffffff;
+
+            --card-b:
+                #ffffff;
+
+            /*
+             * Diese Variablen werden vom globalen Header ebenfalls
+             * verwendet.
+             */
+
+            --header-bg:
+                rgba(255, 255, 255, 0.9);
+
+            --theme-ring:
+                var(--accent);
+
+            --menu-btn-bg:
+                rgba(255, 255, 255, 0.9);
+
+            --menu-btn-fg:
+                var(--text-main);
+
+            --text-main:
+                #1f2937;
+
+            --text-muted:
+                #6b7280;
+
+            --accent:
+                #315efb;
+
+            --accent-hover:
+                #244bd1;
+
+            --correct:
+                #2e9b68;
+
+            --wrong:
+                #d94b4b;
+
+            --border:
+                color-mix(
+                    in srgb,
+                    var(--text-muted) 28%,
+                    transparent
+                );
+
+            --disabled:
+                color-mix(
+                    in srgb,
+                    var(--text-muted) 45%,
+                    transparent
+                );
+
+            --shadow:
+                0 4px 22px rgba(0, 0, 0, 0.12);
+
+        }
+
+
+        body {
+
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            color:
+                var(--text-main);
+
+            min-height:
+                100vh;
+
+            transition:
+                color 0.25s ease;
+
+        }
+
+
+        /* ============================================================
+           AUTHENTICATION LOADING
+           ------------------------------------------------------------
+           Das Dashboard wird zunächst ausgeblendet, während Firebase
+           prüft, ob bereits ein Benutzer angemeldet ist.
+
+           Dadurch wird verhindert, dass der geschützte Dashboard-
+           Inhalt kurz sichtbar wird, bevor ein nicht angemeldeter
+           Benutzer zu login.html weitergeleitet wird.
+           ============================================================ */
+
+        body.auth-checking > *:not(#authLoading) {
+
+            visibility:
+                hidden;
+
+        }
+
+
+        #authLoading {
+
+            position:
+                fixed;
+
+            inset:
+                0;
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                center;
+
+            background:
+                #0d1b12;
+
+            color:
+                white;
+
+            font-size:
+                16px;
+
+            z-index:
+                9999;
+
+        }
+
+
+        body:not(.auth-checking) #authLoading {
+
+            display:
+                none;
+
+        }
+
+
+        /* ============================================================
+           MAIN
+           ============================================================ */
+
+        main {
+
+            width:
+                min(
+                    1100px,
+                    calc(100% - 40px)
+                );
+
+            margin:
+                40px auto 70px;
+
+        }
+
+
+        .welcome {
+
+            margin-bottom:
+                30px;
+
+        }
+
+
+        .welcome h1 {
+
+            font-size:
+                30px;
+
+            margin-bottom:
+                8px;
+
+            color:
+                var(--text-main);
+
+        }
+
+
+        .welcome p {
+
+            color:
+                var(--text-muted);
+
+        }
+
+
+        /* ============================================================
+           LEARNING CARD
+           ============================================================ */
+
+        .learning-card {
+
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--card-a),
+                    var(--card-b)
+                );
+
+            border:
+                1px solid var(--border);
+
+            border-radius:
+                14px;
+
+            padding:
+                30px;
+
+            box-shadow:
+                var(--shadow);
+
+        }
+
+
+        .learning-card h2 {
+
+            font-size:
+                21px;
+
+            margin-bottom:
+                25px;
+
+            color:
+                var(--text-main);
+
+        }
+
+
+        .form-group {
+
+            margin-bottom:
+                20px;
+
+        }
+
+
+        .form-group label {
+
+            display:
+                block;
+
+            font-size:
+                14px;
+
+            font-weight:
+                600;
+
+            margin-bottom:
+                8px;
+
+            color:
+                var(--text-main);
+
+        }
+
+
+        select {
+
+            width:
+                100%;
+
+            height:
+                48px;
+
+            padding:
+                0 14px;
+
+            border:
+                1px solid var(--border);
+
+            border-radius:
+                8px;
+
+            background:
+                var(--card-bg);
+
+            color:
+                var(--text-main);
+
+            font-size:
+                15px;
+
+        }
+
+
+        select:disabled {
+
+            color:
+                var(--disabled);
+
+            cursor:
+                not-allowed;
+
+        }
+
+
+        select.invalid {
+
+            border:
+                2px solid var(--wrong);
+
+        }
+
+
+        .error-message {
+
+            display:
+                none;
+
+            margin-top:
+                7px;
+
+            color:
+                var(--wrong);
+
+            font-size:
+                13px;
+
+        }
+
+
+        .error-message.visible {
+
+            display:
+                block;
+
+        }
+
+
+        /* ============================================================
+           QUIZ TYPES
+           ============================================================ */
+
+        .quiz-types {
+
+            display:
+                grid;
+
+            grid-template-columns:
+                repeat(3, 1fr);
+
+            gap:
+                12px;
+
+        }
+
+
+        .quiz-type {
+
+            min-height:
+                55px;
+
+            border:
+                1px solid var(--border);
+
+            border-radius:
+                9px;
+
+            background:
+                var(--card-bg);
+
+            color:
+                var(--text-main);
+
+            cursor:
+                pointer;
+
+            font-size:
+                14px;
+
+            font-weight:
+                600;
+
+        }
+
+
+        .quiz-type:hover:not(:disabled) {
+
+            border-color:
+                var(--accent);
+
+        }
+
+
+        .quiz-type.selected {
+
+            border:
+                2px solid var(--accent);
+
+            color:
+                var(--accent);
+
+            background:
+                color-mix(
+                    in srgb,
+                    var(--accent) 10%,
+                    transparent
+                );
+
+        }
+
+
+        .quiz-type:disabled {
+
+            color:
+                var(--disabled);
+
+            cursor:
+                not-allowed;
+
+        }
+
+
+        /* ============================================================
+           FRAGENANZAHL-STEPPER
+           ============================================================ */
+
+        .stepper {
+
+            display:
+                flex;
+
+            align-items:
+                stretch;
+
+            width:
+                100%;
+
+            max-width:
+                260px;
+
+            border:
+                1px solid var(--border);
+
+            border-radius:
+                8px;
+
+            overflow:
+                hidden;
+
+        }
+
+
+        .stepper-btn {
+
+            width:
+                52px;
+
+            border:
+                none;
+
+            background:
+                var(--card-bg);
+
+            color:
+                var(--accent);
+
+            font-size:
+                20px;
+
+            font-weight:
+                700;
+
+            cursor:
+                pointer;
+
+        }
+
+
+        .stepper-btn:hover {
+
+            background:
+                color-mix(
+                    in srgb,
+                    var(--accent) 12%,
+                    transparent
+                );
+
+        }
+
+
+        .stepper-value {
+
+            flex:
+                1;
+
+            height:
+                48px;
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                center;
+
+            font-size:
+                17px;
+
+            font-weight:
+                700;
+
+            color:
+                var(--text-main);
+
+            background:
+                var(--card-bg);
+
+            border-left:
+                1px solid var(--border);
+
+            border-right:
+                1px solid var(--border);
+
+            user-select:
+                none;
+
+        }
+
+
+        /* ============================================================
+           START BUTTON
+           ============================================================ */
+
+        .start-container {
+
+            margin-top:
+                30px;
+
+            text-align:
+                center;
+
+        }
+
+
+        #startQuiz {
+
+            width:
+                min(
+                    220px,
+                    100%
+                );
+
+            height:
+                52px;
+
+            border:
+                none;
+
+            border-radius:
+                9px;
+
+            background:
+                var(--accent);
+
+            color:
+                white;
+
+            font-size:
+                16px;
+
+            font-weight:
+                700;
+
+            cursor:
+                pointer;
+
+        }
+
+
+        #startQuiz:hover {
+
+            background:
+                var(--accent-hover);
+
+        }
+
+
+        /* ============================================================
+           RESPONSIVE
+           ============================================================ */
+
+        @media (max-width: 700px) {
+
+            main {
+
+                width:
+                    calc(100% - 24px);
+
+                margin-top:
+                    25px;
+
+            }
+
+
+            .learning-card {
+
+                padding:
+                    20px;
+
+            }
+
+
+            .quiz-types {
+
+                grid-template-columns:
+                    1fr;
+
+            }
+
+
+            .welcome h1 {
+
+                font-size:
+                    25px;
+
+            }
+
+
+            .stepper {
+
+                max-width:
+                    none;
+
+            }
+
+        }
+
+    </style>
+
+    <link rel="stylesheet" href="multi-select.css">
+<link rel="stylesheet" href="theme-forest.css">
+</head>
+
+
+<body class="theme-einhorn auth-checking">
+    <!-- ============================================================
+     GLOBALER HEADER
+     ============================================================ -->
+    <!-- ============================================================
+         AUTHENTICATION LOADING
+         ============================================================ -->
+    <div id="authLoading">
+        Anmeldung wird geprüft …
+    </div>
+
+    <!-- ============================================================
+         GLOBALER HEADER
+         ------------------------------------------------------------
+         Der komplette Header wird aus header-global.html geladen.
+
+         header-global.html enthält:
+             - FIAE TRAINER Logo
+             - Theme-Button
+             - Hamburger-Menü
+             - Navigation
+             - Theme-System
+             - Theme-Animationen
+             - globales Logout-Event
+
+         Diese Seite enthält KEINE eigene Header-Implementierung.
+         ============================================================ -->
+         
+    <div id="globalHeaderContainer"></div>
+    <!-- ============================================================
+         HAUPTINHALT
+         ============================================================ -->
+
+    <main>
+
+
+        <section class="welcome">
+
+
+            <h1 id="welcomeTitle">
+
+                Willkommen zurück!
+
+            </h1>
+
+
+            <p id="welcomeText">
+
+                Wähle aus, was du heute lernen möchtest.
+
+            </p>
+
+
+        </section>
+
+
+        <!-- ========================================================
+             AUSWAHL
+             ======================================================== -->
+
+        <section class="learning-card">
+
+
+            <h2>
+
+                Auswahl
+
+            </h2>
+
+
+            <!-- ====================================================
+                 SEMESTER
+                 ==================================================== -->
+
+            <div class="form-group">
+
+
+                <label for="semester">
+
+                    Semester
+
+                </label>
+
+
+                <select id="semester">
+
+
+                    <option value="">
+
+                        Semester auswählen
+
+                    </option>
+
+
+                    <option value="1">
+
+                        1. Semester
+
+                    </option>
+
+
+                    <option value="2">
+
+                        2. Semester
+
+                    </option>
+
+
+                    <option value="extra">
+
+                        Extra
+
+                    </option>
+
+
+                </select>
+
+
+            </div>
+
+
+
+
+            <!-- ====================================================
+                 FACH
+                 ==================================================== -->
+
+            <div class="form-group">
+
+
+                <label for="subject">
+
+                    Fach
+
+                </label>
+
+
+                <select
+                    id="subject"
+                    disabled>
+
+
+                    <option value="">
+
+                        Erst Semester auswählen
+
+                    </option>
+
+
+                </select>
+
+
+                <div
+                    id="subjectError"
+                    class="error-message">
+
+                    Bitte wähle zuerst ein Fach aus.
+
+                </div>
+
+
+            </div>
+
+
+            <!-- ====================================================
+                 THEMA
+                 ==================================================== -->
+
+            <div class="form-group">
+
+
+                <label for="topic">
+
+                    Thema
+
+                </label>
+
+
+                <select
+                    id="topic"
+                    disabled>
+
+
+                    <option value="">
+
+                        Erst Fach auswählen
+
+                    </option>
+
+
+                </select>
+
+
+                <div
+                    id="topicError"
+                    class="error-message">
+
+                    Bitte wähle zuerst ein Thema aus.
+
+                </div>
+
+
+            </div>
+
+
+            <!-- ====================================================
+                 FRAGENANZAHL
+                 ==================================================== -->
+
+            <div class="form-group">
+
+
+                <label
+                    id="questionCountLabel"
+                    for="questionCountValue">
+
+                    Wie viele Fragen bearbeiten?
+
+                </label>
+
+
+                <div class="stepper">
+
+
+                    <button
+                        type="button"
+                        class="stepper-btn"
+                        id="questionCountDown"
+                        aria-label="Weniger Fragen">
+
+                        −
+
+                    </button>
+
+
+                    <div
+                        class="stepper-value"
+                        id="questionCountValue"
+                        role="spinbutton"
+                        aria-labelledby="questionCountLabel"
+                        aria-valuemin="5"
+                        aria-valuemax="40"
+                        aria-valuenow="10">
+
+                        10
+
+                    </div>
+
+
+                    <button
+                        type="button"
+                        class="stepper-btn"
+                        id="questionCountUp"
+                        aria-label="Mehr Fragen">
+
+                        +
+
+                    </button>
+
+
+                </div>
+
+
+            </div>
+
+
+            <!-- ====================================================
+                 QUIZART
+                 ==================================================== -->
+
+            <div class="form-group">
+
+
+                <label>
+
+                    Quizart
+
+                </label>
+
+
+                <div class="quiz-types">
+
+
+                    <button
+                        class="quiz-type"
+                        data-type="MC" disabled>
+
+                        Multiple Choice
+
+                    </button>
+
+
+                    <button
+                        class="quiz-type"
+                        data-type="FC" disabled>
+
+                        Flashcards
+
+                    </button>
+
+
+                    <button
+                        class="quiz-type"
+                        data-type="BE" disabled>
+
+                        Benutzer-Eingabe
+
+                    </button>
+
+                    <button class="quiz-type" data-type="RF" disabled>Richtig oder Falsch</button>
+
+
+                </div>
+
+
+                <div
+                    id="quizTypeError"
+                    class="error-message">
+
+                    Bitte wähle eine Quizart aus.
+
+                </div>
+
+
+            </div>
+
+
+            <div class="form-group" id="lernstandGroup" hidden>
+                <label>Welche Fragen möchtest du üben?</label>
+                <p id="lernstandStatus" role="status">Fragen werden geladen …</p>
+                <div class="quiz-types" id="lernstandButtons">
+                    <button class="quiz-type" type="button" data-category="gemischt" disabled>Ausgewogene Mischung</button>
+                    <button class="quiz-type" type="button" data-category="neu" disabled>Neue Fragen</button>
+                    <button class="quiz-type" type="button" data-category="hoch" disabled>Lernbedarf hoch</button>
+                    <button class="quiz-type" type="button" data-category="medium" disabled>Lernbedarf mittel</button>
+                    <button class="quiz-type" type="button" data-category="gering" disabled>Lernbedarf gering</button>
+                </div>
+                <div id="lernstandError" class="error-message">Bitte wähle eine verfügbare Kategorie.</div>
+            </div>
+
+            <!-- ====================================================
+                 START
+                 ==================================================== -->
+
+            <div class="start-container">
+
+
+                <button id="startQuiz">
+
+                    QUIZ STARTEN
+
+                </button>
+
+
+            </div>
+
+
+        </section>
+
+
+    </main>
+
+
+    <!-- ============================================================
+         FOOTER
+         ------------------------------------------------------------
+         Die bestehende Footer-Struktur bleibt unverändert.
+         ============================================================ -->
+
+    <footer id="siteFooter">
+
+        <!--
+            Der bestehende Footer wird über footer-app.js aufgebaut.
+        -->
+
+    </footer>
+
+
+    <!-- ============================================================
+         FIREBASE / DASHBOARD
+         ------------------------------------------------------------
+         firebase-config.js enthält ausschließlich die zentrale
+         Firebase-Konfiguration.
+
+         Firebase Authentication wird hier für das geschützte
+         Dashboard verwendet.
+
+         Es wird KEINE questions.json geladen.
+         Die Firestore-Fragenübersicht und persönliche Lernstände werden geladen; vollständige Frageinhalte erst auf der Quizseite.
+         ============================================================ -->
+
+    <script type="module">
+
+
+        /* ============================================================
+           GLOBALEN HEADER LADEN
+           ------------------------------------------------------------
+           header-global.html ist KEINE vollständige HTML-Seite.
+
+           Deshalb wird die Datei per fetch geladen.
+
+           Die enthaltenen <style>- und <script>-Bereiche werden
+           anschließend separat in das Dokument übernommen.
+           ============================================================ */
+
+        /* DOKU: Lädt das gleichnamige lokale Headerfragment. Styles und Skripte werden bewusst als neue Elemente eingefügt; daher darf dieser Pfad nur vertrauenswürdigen Projektcode liefern. */
+async function loadGlobalHeader() {
+
+            try {
+
+                const response =
+                    await fetch(
+                        "header-global.html"
+                    );
+
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        "header-global.html konnte nicht geladen werden."
+                    );
+
+                }
+
+
+                const headerHtml =
+                    await response.text();
+
+
+                const parser =
+                    new DOMParser();
+
+
+                const headerDocument =
+                    parser.parseFromString(
+                        headerHtml,
+                        "text/html"
+                    );
+
+
+                const container =
+                    document.getElementById(
+                        "globalHeaderContainer"
+                    );
+
+
+                /*
+                 * ----------------------------------------------------
+                 * STYLE AUS GLOBALER HEADER-DATEI ÜBERNEHMEN
+                 * ----------------------------------------------------
+                 */
+
+                headerDocument
+                    .querySelectorAll("style")
+                    .forEach(
+                        (styleElement) => {
+
+                            const style =
+                                document.createElement(
+                                    "style"
+                                );
+
+                            style.textContent =
+                                styleElement.textContent;
+
+                            document.head.appendChild(
+                                style
+                            );
+
+                        }
+                    );
+
+
+                /*
+                 * ----------------------------------------------------
+                 * HTML DES GLOBALEN HEADERS ÜBERNEHMEN
+                 * ----------------------------------------------------
+                 *
+                 * Wir übernehmen alle sichtbaren Elemente aus dem
+                 * Body von header-global.html.
+                 */
+
+                Array.from(
+                    headerDocument.body.children
+                ).forEach(
+                    (element) => {
+
+                        if (
+                            element.tagName !==
+                            "SCRIPT"
+                        ) {
+
+                            container.appendChild(
+                                document.importNode(
+                                    element,
+                                    true
+                                )
+                            );
+
+                        }
+
+                    }
+                );
+
+
+                /*
+                 * ----------------------------------------------------
+                 * JAVASCRIPT DES GLOBALEN HEADERS AUSFÜHREN
+                 * ----------------------------------------------------
+                 *
+                 * Script-Tags werden bei innerHTML/fetch nicht
+                 * automatisch ausgeführt.
+                 *
+                 * Deshalb wird das Script hier bewusst neu erzeugt.
+                 */
+
+                headerDocument
+                    .querySelectorAll("script")
+                    .forEach(
+                        (scriptElement) => {
+
+                            const script =
+                                document.createElement(
+                                    "script"
+                                );
+
+
+                            if (
+                                scriptElement.src
+                            ) {
+
+                                script.src =
+                                    scriptElement.src;
+
+                            } else {
+
+                                script.textContent =
+                                    scriptElement.textContent;
+
+                            }
+
+
+                            for (const attribute of scriptElement.attributes) script.setAttribute(attribute.name, attribute.value);
+                            if (scriptElement.src) script.async = false;
+                            document.body.appendChild(
+                                script
+                            );
+
+                        }
+                    );
+
+
+            } catch (error) {
+
+                console.error(
+                    "Globaler Header konnte nicht geladen werden:",
+                    error
+                );
+
+            }
+
+        }
+
+
+        /*
+         * Globalen Header laden.
+         */
+
+        await loadGlobalHeader();
+
+
+
+        /* ============================================================
+           FIREBASE IMPORTS
+           ============================================================ */
+
+        import {onAuthStateChanged,signOut} from './private-auth.js';
+import {
+
+            initializeApp
+
+        } from
+            "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+
+
+        import { getAuth } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+
+
+        import { getFirestore } from
+            "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+        import {
+
+            firebaseConfig
+
+        } from
+            "./firebase-config.js";
+
+
+
+        import { loadInventory, loadSelectedStats, clearDataCache } from './quiz-data.js';
+        import { buildPools, chooseIds, matchesFilters } from './quiz-data-core.js';
+        import { createMultiSelect } from './multi-select.js';
+        let loadedUserId = null;
+
+        /* ============================================================
+           FIREBASE INITIALISIEREN
+           ============================================================ */
+
+        const firebaseApp =
+            initializeApp(
+                firebaseConfig
+            );
+
+
+        const auth =
+            getAuth(
+                firebaseApp
+            );
+        const db = getFirestore(firebaseApp);
+
+
+
+        /* ============================================================
+           ELEMENTE
+           ============================================================ */
+
+        const authLoading =
+            document.getElementById(
+                "authLoading"
+            );
+
+
+        const welcomeTitle =
+            document.getElementById(
+                "welcomeTitle"
+            );
+
+
+        const subjectSelect = createMultiSelect(document.getElementById("subject"));
+
+
+        const topicSelect = createMultiSelect(document.getElementById("topic"));
+
+
+        const semesterSelect = createMultiSelect(document.getElementById("semester"));
+
+
+        const startQuiz =
+            document.getElementById(
+                "startQuiz"
+            );
+
+
+        const quizTypeButtons =
+            document.querySelectorAll(
+                ".quiz-type[data-type]"
+            );
+
+
+
+        /* ============================================================
+           FIREBASE AUTHENTICATION GUARD
+           ------------------------------------------------------------
+           Dies steuert die Sichtbarkeit und Weiterleitung in quizBit.html.
+           Serverseitiger Datenschutz wird separat durch Firestore-Regeln bestimmt.
+
+           Firebase entscheidet, ob aktuell ein Benutzer angemeldet
+           ist.
+
+           Angemeldet:
+               Dashboard anzeigen.
+
+           Nicht angemeldet:
+               Weiterleitung zu login.html.
+           ============================================================ */
+
+        onAuthStateChanged(
+            auth,
+            (user) => {
+
+
+                if (!user) {
+                    clearDataCache();
+
+                    window.location.replace(
+                        "login.html"
+                    );
+
+                    return;
+
+                }
+
+
+                /*
+                 * Benutzer ist authentifiziert.
+                 * Jetzt darf das Dashboard sichtbar werden.
+                 */
+
+                document.body.classList.remove(
+                    "auth-checking"
+                );
+
+
+                /*
+                 * Falls Firebase eine E-Mail liefert, verwenden wir
+                 * diese zunächst als persönliche Begrüßung.
+                 */
+
+                if (user.email) {
+                    welcomeTitle.textContent = "Willkommen zurück!";
+                }
+                if (loadedUserId !== user.uid) {
+                    loadedUserId = user.uid;
+                    resetLernstand();
+                    loadAvailableQuestions();
+                }
+            }
+        );
+
+
+
+        /* ============================================================
+           AUSWAHL DIREKT AUS FIRESTORE
+           ------------------------------------------------------------
+           Semester/Fächer/Themen stammen aus der Importübersicht.
+           Importskripte aktualisieren diese zusammen mit neuen Fragen.
+           Es werden hier keine Frageinhalte geladen.
+           ============================================================ */
+        let availableQuestions = [];
+
+        /* DOKU: Lädt ausschließlich Inventarmetadaten für das angemeldete Konto und befüllt die Semesterwahl. Fächer und Themen werden danach aus dieser Liste abgeleitet. */
+async function loadAvailableQuestions() {
+            semesterSelect.disabled = true;
+            try {
+                availableQuestions = await loadInventory(db, auth.currentUser.uid);
+                const semesters = [...new Set(availableQuestions.map(q => q.semester).filter(Boolean))]
+                    .sort((a, b) => a.localeCompare(b, "de", { numeric: true }));
+                semesterSelect.setOptions(semesters.map(value => ({value, label: value === "extra" ? "Extra" : `${value}. Semester`})));
+            } catch (error) {
+                console.error("Fragenübersicht konnte nicht geladen werden:", error);
+                semesterSelect.setOptions([], "Auswahl derzeit nicht verfügbar");
+                semesterSelect.disabled = true;
+            }
+        }
+
+        /* DOKU: Filtert das Inventar über predicate, entfernt doppelte Werte des gewünschten Felds und sortiert sprachgerecht mit numerischer Reihenfolge. */
+function valuesFor(field, predicate) {
+            return [...new Set(availableQuestions.filter(predicate).map(q => q[field]).filter(Boolean))]
+                .sort((a, b) => a.localeCompare(b, "de", { numeric: true }));
+        }
+
+        function hasQuizType(question, type) {
+            const listed = question.quizTypes ?? question.quizType ?? question["Quiz-Möglichkeit"] ?? "";
+            const types = Array.isArray(listed) ? listed : String(listed).split(",").map(v => v.trim());
+            return types.includes(type);
+        }
+
+        /* DOKU: Erzeugt das gemeinsame Filterobjekt aus den drei Mehrfachauswahlen; leere Listen führen bei matchesFilters zu keinen Treffern. */
+function selectionValues() {
+            return {semester: semesterSelect.values, subject: subjectSelect.values, topic: topicSelect.values};
+        }
+        function matchesSelection(q) { return matchesFilters(q, selectionValues()); }
+
+        /* DOKU: Aktiviert nur Quiztypen mit passenden Fragen. Eine nicht mehr verfügbare bisherige Auswahl wird verworfen. */
+function refreshQuizTypes() {
+            const current = availableQuestions.filter(matchesSelection);
+            quizTypeButtons.forEach(button => {
+                button.classList.toggle("selected", selectedQuizType === button.dataset.type);
+                button.disabled = !["RF", "MC", "FC", "BE"].includes(button.dataset.type) ||
+                    !current.some(q => hasQuizType(q, button.dataset.type));
+                if (button.disabled && selectedQuizType === button.dataset.type) {
+                    button.classList.remove("selected");
+                    selectedQuizType = null;
+                    resetLernstand();
+                }
+            });
+        }
+
+        /* DOKU: Leitet Themen aus gewählten Semestern und Fächern ab. setOptions erhält weiterhin gültige Auswahlwerte. */
+function refreshTopics() {
+            const topics = valuesFor("topic", q => semesterSelect.values.includes(String(q.semester)) && subjectSelect.values.includes(q.subject));
+            topicSelect.setOptions(topics);
+        }
+        /* DOKU: Verwirft den bisherigen Lernbedarf und lädt ihn nach der Filteränderung erneut. So gehört die Startauswahl zum aktuellen Filter. */
+function updateFilters() {
+            resetLernstand();
+            refreshQuizTypes();
+            ladeLernstand();
+        }
+        semesterSelect.addEventListener("change", () => {
+            subjectSelect.setOptions(valuesFor("subject", q => semesterSelect.values.includes(String(q.semester))));
+            refreshTopics();
+            updateFilters();
+        });
+        subjectSelect.addEventListener("change", () => { refreshTopics(); updateFilters(); });
+        topicSelect.addEventListener("change", updateFilters);
+
+        /* ============================================================
+           QUIZART
+           ============================================================ */
+
+        let selectedQuizType =
+            null;
+
+
+        quizTypeButtons.forEach(
+            (button) => {
+
+
+                button.addEventListener(
+                    "click",
+                    () => {
+                        if (selectedQuizType === button.dataset.type) return;
+
+                        quizTypeButtons.forEach(
+                            (btn) => {
+
+                                btn.classList.remove(
+                                    "selected"
+                                );
+
+                            }
+                        );
+
+
+                        button.classList.add(
+                            "selected"
+                        );
+
+
+                        selectedQuizType =
+                            button.dataset.type;
+                        resetLernstand();
+                        ladeLernstand();
+
+                    }
+                );
+
+            }
+        );
+
+
+
+        const lernstandGroup = document.getElementById("lernstandGroup");
+        const lernstandStatus = document.getElementById("lernstandStatus");
+        const lernstandError = document.getElementById("lernstandError");
+        const lernstandButtons = [...document.querySelectorAll("#lernstandButtons button")];
+        let selectedCategory = null;
+        let currentQuestionIds = { neu: [], falsch: [], gesehen: [], hoch: [], medium: [], gering: [] };
+        let loadVersion = 0;
+
+        /* DOKU: Erhöht loadVersion und sperrt den Start. Bereits laufende asynchrone Ladevorgänge dürfen danach ihre veralteten Ergebnisse nicht mehr anzeigen. */
+function resetLernstand() {
+            loadVersion++;
+            startQuiz.disabled = true;
+            selectedCategory = null;
+            currentQuestionIds = { neu: [], falsch: [], gesehen: [], hoch: [], medium: [], gering: [] };
+            lernstandGroup.hidden = true;
+            lernstandError.classList.remove("visible");
+            lernstandButtons.forEach(button => {
+                button.disabled = true;
+                button.classList.remove("selected");
+            });
+        }
+
+        /* DOKU: Delegiert die Auswahl aus den vorbereiteten Bedarfslisten an chooseIds; verändert die Frageninhalte nicht. */
+function waehleQuestionIds(category, count) {
+            return chooseIds(currentQuestionIds, category, count, selectedQuizType);
+        }
+
+        lernstandButtons.forEach(button => button.addEventListener("click", () => {
+            if (button.disabled) return;
+            selectedCategory = button.dataset.category;
+            lernstandButtons.forEach(b => b.classList.toggle("selected", b === button));
+            lernstandError.classList.remove("visible");
+        }));
+
+        /* DOKU: Berechnet aus passenden Inventarfragen und persönlichem Lernstand die ID-Pools. Ein Versionsvergleich nach dem await verhindert das Überschreiben durch ältere Filterabfragen. */
+async function ladeLernstand() {
+            if (!selectedQuizType || !semesterSelect.value || !subjectSelect.value || !topicSelect.value) return;
+            const version = ++loadVersion;
+            lernstandGroup.hidden = false;
+            lernstandStatus.textContent = "Fragen und Lernstand werden geladen …";
+            startQuiz.disabled = true;
+            try {
+                const type = selectedQuizType;
+                const questions = availableQuestions.filter(q => hasQuizType(q, type) && matchesSelection(q));
+                const stats = await loadSelectedStats(db, auth.currentUser.uid,
+                    questions.map(q => q.id));
+                if (version !== loadVersion) return;
+                const pools = buildPools(questions, stats, type);
+                currentQuestionIds = pools;
+                const total = pools.neu.length + pools.hoch.length + pools.medium.length + pools.gering.length;
+                lernstandButtons.forEach(button => {
+                    const cat = button.dataset.category;
+                    const available = cat === "gemischt" ? total : pools[cat].length;
+                    button.disabled = available === 0;
+                    button.textContent = `${button.textContent.replace(/ \(\d+\)$/, "")} (${available})`;
+                });
+                lernstandStatus.textContent = total ? `${total} Fragen verfügbar. Wähle eine Kategorie.${type === "FC" ? " Lernbedarf: 1× angesehen = hoch, 2× = mittel, ab 3× = gering." : ""}` : "Keine Fragen für diese Auswahl vorhanden.";
+                if (total) {
+                    const recommended = lernstandButtons.find(b => b.dataset.category === "gemischt");
+                    selectedCategory = "gemischt";
+                    recommended.classList.add("selected");
+                }
+            } catch (error) {
+                if (version !== loadVersion) return;
+                console.error("Lernstand konnte nicht geladen werden:", error);
+                lernstandStatus.textContent = "Lernstand konnte nicht geladen werden. Bitte prüfe Verbindung und Anmeldung.";
+            } finally {
+                if (version === loadVersion) startQuiz.disabled = !selectedCategory;
+            }
+        }
+
+        /* ============================================================
+           FRAGENANZAHL
+           ============================================================ */
+
+        const questionCounts = [
+
+            5,
+            10,
+            15,
+            20,
+            25,
+            30,
+            35,
+            40,
+            "all"
+
+        ];
+
+
+        let questionCountIndex =
+            questionCounts.indexOf(
+                10
+            );
+
+
+        const questionCountValue =
+            document.getElementById(
+                "questionCountValue"
+            );
+
+
+        const questionCountUp =
+            document.getElementById(
+                "questionCountUp"
+            );
+
+
+        const questionCountDown =
+            document.getElementById(
+                "questionCountDown"
+            );
+
+
+
+        /* DOKU: Zeigt den aktuellen Wert aus der festen Anzahlstaffel und aktualisiert die ARIA-Werte. all steht für sämtliche verfügbaren Fragen. */
+function renderQuestionCount() {
+
+
+            const value =
+                questionCounts[
+                    questionCountIndex
+                ];
+
+
+            questionCountValue.textContent = value === "all" ? "Alle verfügbaren" : value;
+            questionCountValue.setAttribute("aria-valuemax", Math.max(40, availableQuestions.length));
+            questionCountValue.setAttribute("aria-valuenow", value === "all" ? Math.max(40, availableQuestions.length) : value);
+            questionCountValue.setAttribute("aria-valuetext", value === "all" ? "Alle verfügbaren Fragen" : `${value} Fragen`);
+
+        }
+
+
+
+        questionCountUp.addEventListener(
+            "click",
+            () => {
+
+
+                questionCountIndex =
+                    (
+                        questionCountIndex +
+                        1
+                    ) %
+                    questionCounts.length;
+
+
+                renderQuestionCount();
+
+            }
+        );
+
+
+
+        questionCountDown.addEventListener(
+            "click",
+            () => {
+
+
+                questionCountIndex =
+                    (
+                        questionCountIndex -
+                        1 +
+                        questionCounts.length
+                    ) %
+                    questionCounts.length;
+
+
+                renderQuestionCount();
+
+            }
+        );
+
+
+
+        /* ============================================================
+           QUIZ STARTEN
+           ------------------------------------------------------------
+           Hier wird noch keine Quizlogik ausgeführt.
+
+           Das Dashboard übergibt ausschließlich die vom Benutzer
+           getroffene Auswahl an die passende Seite (mc/fc/be/quiz.html).
+
+           Die eigentlichen Fragen werden später über die Datenbank
+           bereitgestellt.
+           ============================================================ */
+
+        startQuiz.addEventListener(
+            "click",
+            () => {
+
+
+                let valid =
+                    true;
+
+
+
+                /* ----------------------------------------------------
+                   FACH PRÜFEN
+                   ---------------------------------------------------- */
+
+                if (!subjectSelect.value) {
+
+
+                    subjectSelect.classList.add(
+                        "invalid"
+                    );
+
+
+                    document
+                        .getElementById(
+                            "subjectError"
+                        )
+                        .classList.add(
+                            "visible"
+                        );
+
+
+                    valid =
+                        false;
+
+
+                } else {
+
+
+                    subjectSelect.classList.remove(
+                        "invalid"
+                    );
+
+
+                    document
+                        .getElementById(
+                            "subjectError"
+                        )
+                        .classList.remove(
+                            "visible"
+                        );
+
+                }
+
+
+
+                /* ----------------------------------------------------
+                   THEMA PRÜFEN
+                   ---------------------------------------------------- */
+
+                if (!topicSelect.value) {
+
+
+                    topicSelect.classList.add(
+                        "invalid"
+                    );
+
+
+                    document
+                        .getElementById(
+                            "topicError"
+                        )
+                        .classList.add(
+                            "visible"
+                        );
+
+
+                    valid =
+                        false;
+
+
+                } else {
+
+
+                    topicSelect.classList.remove(
+                        "invalid"
+                    );
+
+
+                    document
+                        .getElementById(
+                            "topicError"
+                        )
+                        .classList.remove(
+                            "visible"
+                        );
+
+                }
+
+
+
+                /* ----------------------------------------------------
+                   QUIZART PRÜFEN
+                   ---------------------------------------------------- */
+
+                if (!selectedQuizType) {
+
+
+                    document
+                        .getElementById(
+                            "quizTypeError"
+                        )
+                        .classList.add(
+                            "visible"
+                        );
+
+
+                    valid =
+                        false;
+
+
+                } else {
+
+
+                    document
+                        .getElementById(
+                            "quizTypeError"
+                        )
+                        .classList.remove(
+                            "visible"
+                        );
+
+                }
+
+
+
+                if (!selectedCategory || !waehleQuestionIds(selectedCategory, 1).length) {
+                    lernstandError.classList.add("visible");
+                    valid = false;
+                }
+
+                if (!valid) return;
+
+                const questionIds = waehleQuestionIds(selectedCategory, questionCounts[questionCountIndex]);
+
+                /* ----------------------------------------------------
+                   AUSWAHL SPEICHERN
+                   ---------------------------------------------------- */
+
+                const quizSelection = {
+
+
+                    semester: semesterSelect.values,
+
+
+                    subject: subjectSelect.values,
+
+
+                    topic: topicSelect.values,
+
+
+                    questionCount: questionCounts[questionCountIndex] === "all" ? "all" : questionIds.length,
+
+
+                    quizType:
+                        selectedQuizType,
+                    category: selectedCategory,
+                    questionIds,
+                    questionPaths: availableQuestions
+                        .filter(q => matchesSelection(q) && hasQuizType(q, selectedQuizType) && questionIds.includes(q.id))
+                        .map(q => q.path)
+
+                };
+
+
+
+/* DOKU: Speichert die Rundenauswahl nur für diese Browsersitzung, einschließlich konkreter questionPaths. loadRoundQuestions prüft diese später nochmals gegen das Inventar. */
+                sessionStorage.setItem(
+                    "quizSelection",
+                    JSON.stringify(
+                        quizSelection
+                    )
+                );
+
+
+
+                /* ----------------------------------------------------
+                   WEITER ZUR BESTEHENDEN QUIZSEITE
+                   ---------------------------------------------------- */
+
+                window.location.href =
+                    selectedQuizType === "MC" ? "mc.html" :
+                    selectedQuizType === "FC" ? "fc.html" :
+                    selectedQuizType === "BE" ? "be.html" : "quiz.html";
+
+            }
+        );
+
+
+
+        /* ============================================================
+           GLOBALER LOGOUT
+           ------------------------------------------------------------
+           header-global.html führt Firebase NICHT selbst aus.
+
+           Stattdessen sendet der globale Header das Event:
+
+               fiaeTrainerLogout
+
+           quizBit.html übernimmt hier weiterhin den tatsächlichen
+           Firebase-Logout.
+           ============================================================ */
+
+        window.addEventListener(
+            "fiaeTrainerLogout",
+            async () => {
+
+
+                try {
+
+
+                    await signOut(
+                        auth
+                    );
+
+
+                    window.location.replace(
+                        "login.html"
+                    );
+
+
+                } catch (error) {
+
+
+                    console.error(
+                        "Firebase Logout fehlgeschlagen:",
+                        error
+                    );
+
+
+                    alert(
+                        "Der Logout konnte nicht durchgeführt werden."
+                    );
+
+                }
+
+            }
+        );
+
+
+    </script>
+
+
+    <!-- ============================================================
+         FOOTER-SCRIPTS
+         ------------------------------------------------------------
+         Diese beiden Dateien gehören zur bereits funktionierenden
+         Footer-Integration und bleiben unverändert.
+         ============================================================ -->
+
+    <script src="/footer-config.js"></script>
+
+    <script
+        src="/footer-app.js"
+        defer>
+    </script>
+
+
+</body>
+
+</html>

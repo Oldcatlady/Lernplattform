@@ -1,0 +1,43 @@
+/* DOKU: Gemeinsame Überschreibungen für theme-dschungel. CSS-Variablen verbinden die verschiedenen Seitenpaletten; !important gibt diesen Regeln Vorrang vor den jeweiligen Seitenstyles. prefers-reduced-motion schaltet die Waldanimation ab. */
+/* Warme Waldpalette, ruhige Flächen und gut lesbare Kontraste. */
+body.theme-dschungel {
+    color-scheme:dark;
+    --page:#101910 !important; --surface:#202c1e !important;
+    --front:#30432b !important; --back:#3c4829 !important;
+    --question-bg:#30432b !important; --question-ink:#edf0de !important;
+    --ink:#e4e9d5 !important; --card-ink:#edf0de !important;
+    --muted:#b4bea2 !important; --text-main:#e4e9d5 !important;
+    --text-muted:#b4bea2 !important; --accent:#aec77f !important;
+    --accent-hover:#c1d997 !important; --edge:#738461 !important;
+    --border:#667956 !important; --correct:#aecb87 !important;
+    --wrong:#edaaa0 !important; --header-bg:#1b281b !important;
+    --theme-ring:#aec77f !important; --menu-btn-bg:#35472b !important;
+    --menu-btn-fg:#e4e9d5 !important; --card-bg:#202c1e !important;
+    --card-a:#30432b !important; --card-b:#3c4829 !important;
+    background:linear-gradient(120deg,#101910,#263820,#303c20,#162619,#101910) !important;
+    background-size:300% 300% !important;
+    background-attachment:fixed !important;
+    animation:forest-drift 48s ease-in-out infinite alternate;
+}
+body.theme-dschungel #theme-fx {
+    background:radial-gradient(ellipse at 18% 25%,#53633945,transparent 55%),radial-gradient(ellipse at 82% 70%,#46603b45,transparent 55%) !important;
+    background-size:160% 160% !important;
+    animation:forest-drift 48s ease-in-out infinite alternate;
+}
+body.theme-dschungel .particle { display:none; }
+body.theme-dschungel #startQuiz:not(:disabled),
+body.theme-dschungel .primary { color:#172315; }
+body.theme-dschungel :focus-visible { outline:3px solid #c1d997; outline-offset:3px; }
+@keyframes forest-drift { from {background-position:0% 25%;} to {background-position:100% 75%;} }
+@media (prefers-reduced-motion:reduce) {
+    body.theme-dschungel, body.theme-dschungel #theme-fx {animation:none !important;}
+}
+
+body.theme-dschungel .quiz-type.selected { background:#3c4f2e; color:#edf0de; }
+body.theme-dschungel #globaler-footer { background:#182218; color:#b4bea2; }
+body.theme-dschungel #globaler-footer a { color:#e4e9d5; }
+body.theme-dschungel .score .correct-count { color:#aecb87; }
+body.theme-dschungel .score .wrong-count,
+body.theme-dschungel #status.error { color:#edaaa0; }
+body.theme-dschungel .options button.correct { background:#30432b; border-color:#aecb87; color:#e4e9d5; }
+body.theme-dschungel .options button.wrong { background:#47302b; border-color:#edaaa0; color:#f4d6cd; }

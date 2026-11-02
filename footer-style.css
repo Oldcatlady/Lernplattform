@@ -1,0 +1,69 @@
+/* DOKU: Gestaltung des von footer-app.js erzeugten Footers. Die body-Klasse hat-globalen-footer schafft Platz für den Footer; Layout und Sichtbarkeit ersetzen keine Rechtsprüfung. */
+/* footer-style.css — Styling für #globaler-footer
+   Gehört zum Footer-Baustein (footer-config.js, footer-app.js).
+   Als externe Datei eingebunden -> Browser cached sie einmal
+   projektweit statt bei jedem Seitenaufruf neu zu laden. */
+
+#globaler-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 0.85rem;
+    z-index: 1000;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    box-sizing: border-box;
+}
+
+#globaler-footer .footer-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0.6rem 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+#globaler-footer .footer-copyright {
+    opacity: 0.7;
+}
+
+#globaler-footer nav {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+#globaler-footer a {
+    color: #e0e0e0;
+    text-decoration: none;
+}
+
+#globaler-footer a:hover,
+#globaler-footer a:focus-visible {
+    text-decoration: underline;
+    outline: none;
+}
+
+#globaler-footer .footer-trenner {
+    opacity: 0.4;
+}
+
+/* Platz am Seitenende reservieren, damit der fixierte Footer keinen
+   Inhalt verdeckt. Wird nur wirksam, wenn der Footer tatsächlich
+   eingefügt wurde (siehe footer-app.js). */
+body.hat-globalen-footer {
+    padding-bottom: 3rem;
+}
+
+@media (max-width: 480px) {
+    #globaler-footer .footer-inner {
+        flex-direction: column;
+        text-align: center;
+    }
+}

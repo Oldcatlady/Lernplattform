@@ -1,0 +1,46 @@
+{
+  "hosting": {
+    "site": "HOSTING_SITE_ID_HERE",
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "firestore.rules",
+      "firestore.indexes.json",
+      "**/*.md",
+      "**/.*",
+      "**/node_modules/**",
+      "tools/**",
+      "**/*.zip",
+      "**/*export*.json",
+      "firestore.rules.template",
+      "backups/**",
+      "**/backups/**",
+      "private-data/**",
+      "docs/**",
+      "examples/**",
+      "**/*.example*",
+      "**/*.pem",
+      "**/*.key",
+      "**/*service-account*.json",
+      "**/*firebase-adminsdk*.json",
+      "**/*.log",
+      "**/*.tmp",
+      "**/*.bak"
+    ],
+    "headers": [
+      {
+        "source": "/private-settings.json",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      }
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
+}

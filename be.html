@@ -1,0 +1,399 @@
+<!doctype html>
+<!-- DOKU: Quiz mit Texteingabe und hinterlegten Antwortvarianten. Der Vergleich ignoriert hier Großschreibung, Leerraum und Unicode-Bindestriche. -->
+
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Benutzer-Eingabe – FIAE Trainer</title>
+    <style>
+/* DOKU: Die eingebetteten Styles legen Seitenlayout, Theme-Farben und Zustände der Bedienelemente fest. CSS-Klassen wie hidden, correct oder wrong werden vom Seitenskript gesetzt; sie übernehmen keine Zugriffsprüfung. */
+        /* ===========================================================
+           THEMES: Dieselben Farbvariablen wie RF und Multiple Choice.
+           Die Frage verwendet Georgia / Times New Roman vom Gerät;
+           es werden keine externen Schriftarten geladen.
+           =========================================================== */
+        * { box-sizing: border-box; }
+        body {
+            --page:#2a1b3d; --surface:#f9e9f3; --question-bg:#f8bedf;
+            --ink:#3b1550; --muted:#69416e; --accent:#ba357e;
+            --edge:#d987b3; --question-ink:#321b36;
+            margin:0; min-height:100vh; color:var(--ink);
+            font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+            background:radial-gradient(circle at 85% 6%,#764274,transparent 34%),var(--page);
+        }
+        body.theme-himalaya {
+            --page:#24748d; --surface:#e9f5fc; --question-bg:#bfdfef;
+            --ink:#173b45; --muted:#416574; --accent:#187d91;
+            --edge:#70b4c5; --question-ink:#153947;
+            background:radial-gradient(circle at 85% 6%,#7dbdc9,transparent 35%),var(--page);
+        }
+        body.theme-dschungel {
+            --page:#0d1b12; --surface:#193323; --question-bg:#315b36;
+            --ink:#edfae7; --muted:#b8d7b2; --accent:#f49b58;
+            --edge:#628961; --question-ink:#fff9e9;
+            background:radial-gradient(circle at 85% 6%,#284b31,transparent 35%),var(--page);
+        }
+        .hidden { display:none !important; }
+        .workspace { width:min(100% - 2rem,760px); margin:1.25rem auto 3rem; }
+
+        /* OBERE LEISTE: Quiz über den Zurück-Button verlassen. */
+        .toolbar { display:flex; justify-content:flex-end; min-height:56px; align-items:center; }
+        .exit {
+            display:inline-flex; justify-content:center; align-items:center; min-height:44px;
+            padding:.6rem 1.3rem; border:2px solid var(--edge); border-radius:999px;
+            background:var(--surface); color:var(--ink); font-weight:650; text-decoration:none;
+        }
+        .exit:hover,.exit:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+
+        /* QUIZBOX: Thema oben, Fragenzahl und Treffer am Fortschrittsbalken. */
+        main {
+            padding:clamp(1.1rem,4vw,2rem); border:2px solid var(--edge);
+            border-radius:26px; background:var(--surface); box-shadow:0 20px 55px #0003;
+        }
+        h1 { margin:0; font-size:clamp(1.45rem,3vw,2rem); line-height:1.2; }
+        .context { margin:.35rem 0 1.3rem; color:var(--muted); font-size:.95rem; }
+        .progress-row { display:flex; justify-content:space-between; gap:1rem; align-items:baseline; font-weight:700; }
+        .progress-row p { margin:0 0 .5rem; }
+        .score { display:flex; gap:.5rem; align-items:center; font-variant-numeric:tabular-nums; }
+        .score .correct-count { color:#17693b; }
+        .score .wrong-count { color:#ad2944; }
+        body.theme-dschungel .score .correct-count { color:#88e89b; }
+        body.theme-dschungel .score .wrong-count { color:#ff9696; }
+        .score .separator { opacity:.65; }
+        progress { display:block; width:100%; height:1.8rem; accent-color:var(--accent); }
+        progress::-webkit-progress-bar { background:var(--question-bg); border-radius:999px; }
+        progress::-webkit-progress-value { background:var(--accent); border-radius:999px; }
+        progress::-moz-progress-bar { background:var(--accent); border-radius:999px; }
+        #status { margin:1rem 0; color:var(--muted); }
+        #status.error { color:#ad2944; font-weight:650; }
+        body.theme-dschungel #status.error { color:#ff9696; }
+
+        /* FRAGENBOX UND EINGABE: Die Frage steht im Mittelpunkt. */
+        .question-box {
+            display:grid; place-items:center; min-height:clamp(190px,31vw,280px);
+            margin:1.35rem 0 1.15rem; padding:clamp(1.35rem,4vw,2.5rem);
+            border:3px solid var(--edge); border-radius:22px;
+            background:var(--question-bg); color:var(--question-ink); box-shadow:0 9px 24px #0002;
+        }
+        #question { margin:0; text-align:center; font-family:Georgia,"Times New Roman",serif; font-size:clamp(1.2rem,2.8vw,1.65rem); line-height:1.5; overflow-wrap:anywhere; }
+        .input-label { display:block; margin-bottom:.45rem; font-weight:650; }
+        #text-input {
+            display:block; width:100%; min-height:52px; padding:.7rem 1rem;
+            border:2px solid var(--edge); border-radius:14px;
+            background:var(--question-bg); color:var(--question-ink);
+            font-family:Georgia,"Times New Roman",serif; font-size:1.2rem;
+        }
+        #text-input:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+        #text-input:disabled { opacity:.8; }
+        button { font:inherit; cursor:pointer; min-height:48px; border-radius:14px; }
+        button:disabled { opacity:.62; cursor:not-allowed; }
+        .primary { width:100%; margin-top:1.2rem; padding:.85rem 1rem; border:2px solid var(--accent); background:var(--accent); color:#fff; font-weight:700; }
+        body.theme-dschungel .primary { color:#17251b; }
+        #verdict { font-weight:700; margin:1.1rem 0 .4rem; }
+        .explanation { padding:1rem 1.2rem; border-radius:14px; background:var(--question-bg); color:var(--question-ink); margin-top:1rem; line-height:1.6; }
+
+
+
+        .result-actions { display:flex; gap:1rem; align-items:center; margin:1.4rem 0; }
+        .result-actions .primary { width:auto; flex:1; margin:0; }
+        @media(max-width:500px) {
+            .workspace { width:min(100% - 1rem,760px); margin-top:.5rem; }
+            .result-actions { flex-direction:column; align-items:stretch; }
+        }
+    
+/* Kompakte Ergebnisansicht: Note zuerst, keine Fragenliste. */
+#result { text-align:center; }
+#result h2 { font-size:1.15rem; margin:.5rem 0; }
+#result .grade-label { margin:.8rem 0 0; font-size:1rem; }
+#grade { display:block; font-size:clamp(3.5rem,14vw,5rem); font-weight:800; line-height:1.1; }
+#summary { margin:.7rem 0; font-size:1.1rem; font-weight:650; }
+#result .result-actions { margin-top:1rem; gap:.65rem; }
+#result .result-actions .primary { width:auto; flex:initial; margin:0; padding:.65rem 1rem; }
+#result .result-actions { justify-content:center; }
+</style>
+<link rel="stylesheet" href="theme-forest.css">
+</head>
+<body class="theme-einhorn">
+<div class="workspace">
+    <!-- NAVIGATION: kleiner Zurück-Button außerhalb der Quizbox. -->
+    <div class="toolbar"><a class="exit" href="quizBit.html">Zurück</a></div>
+    <main>
+        <!-- THEMA: Auswahl aus dem Dashboard statt großer Quizart-Überschrift. -->
+        <h1 id="topic-title">Thema</h1>
+        <p id="context" class="context"></p>
+        <p id="status" role="status">Fragen werden geladen …</p>
+        <section id="play" class="hidden" aria-label="Benutzer-Eingabe">
+            <!-- FORTSCHRITT: Anzahl sowie richtige und falsche Antworten. -->
+            <div class="progress-row">
+                <p id="progress-label"></p>
+                <p id="score" class="score" aria-label="0 richtig, 0 falsch">
+                    <span id="correct-count" class="correct-count">0</span>
+                    <span class="separator" aria-hidden="true">|</span>
+                    <span id="wrong-count" class="wrong-count">0</span>
+                </p>
+            </div>
+            <progress id="progress" value="0" max="1" aria-label="Beantwortete Fragen"></progress>
+
+            <!-- FRAGE: Die Eingabe erfolgt erst unter der hervorgehobenen Frage. -->
+            <div class="question-box"><h2 id="question"></h2></div>
+            <label class="input-label" for="text-input">Deine Antwort</label>
+            <input id="text-input" type="text" maxlength="500" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Antwort eingeben …">
+            <button id="check" type="button" class="primary" disabled>Eingabe prüfen</button>
+            <p id="verdict" role="status" class="hidden"></p>
+            <div id="explanation" class="explanation hidden"></div>
+            <button id="next" type="button" class="primary hidden">Weiter</button>
+        </section>
+
+        <!-- ABSCHLUSS: Kompakte Bewertung und Neustart. -->
+        <section id="result" class="hidden">
+            <h2>Auswertung</h2><p class="grade-label">Deine Note<strong id="grade"></strong></p><p id="summary"></p>
+            <div class="result-actions">
+                <button id="restart" type="button" class="primary">Neu mischen und nochmal spielen</button>
+                <a class="exit" href="quizBit.html">Beenden</a>
+            </div>
+        </section>
+    </main>
+</div>
+<script type="module">
+import { matchesFilters, selectionLabel } from "./quiz-data-core.js";
+/* ================================================================
+   1. FIREBASE UND DASHBOARD-AUSWAHL
+   ================================================================ */
+import {queueAnswer} from './private-sync.js';
+import {onAuthStateChanged,signOut} from './private-auth.js';
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js';
+import { getAuth } from 'https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js';
+import { getFirestore } from 'https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js';
+import { firebaseConfig } from './firebase-config.js';
+import { loadRoundQuestions, clearDataCache, readQuizSelection } from './quiz-data.js';
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const $ = id => document.getElementById(id);
+
+const theme = localStorage.getItem('lernhubTheme');
+if (['theme-einhorn', 'theme-himalaya', 'theme-dschungel'].includes(theme)) document.body.className = theme;
+const selection = readQuizSelection();
+const validSelection = selection?.quizType === 'BE' && selection.semester && selection.subject && selection.topic;
+if (validSelection) {
+    $('topic-title').textContent = selectionLabel(selection.topic, 'topic');
+    const semester = selectionLabel(selection.semester, 'semester');
+    const subject = selectionLabel(selection.subject, 'subject');
+    $('context').textContent = `${semester} · ${subject}`;
+} else {
+    $('status').textContent = 'Wähle zuerst Semester, Fach, Thema und Benutzer-Eingabe im Dashboard.';
+    $('status').classList.add('error');
+}
+
+/* ================================================================
+   2. DATENFORMAT UND ANTWORTVERGLEICH
+   Firestore: Quiz-Möglichkeit BE, Frage, Eingabe (Text oder Liste),
+   Erklärung. Die alten Beispielfelder question/answer gehen auch.
+   Groß-/Kleinschreibung, Leerraum und Bindestriche sind egal.
+   Andere Schreibweisen gelten nur, wenn sie hinterlegt sind.
+   ================================================================ */
+let user = null;
+let all = [];
+let round = [];
+let index = 0;
+let correct = 0;
+let wrong = 0;
+let answered = false;
+let busy = false;
+
+/* DOKU: Normalisiert einen einzelnen Antworttext oder eine Liste zu nichtleeren Textvarianten. Die Bewertung vergleicht anschließend jede zulässige Variante. */
+function acceptedAnswers(value) {
+    return (Array.isArray(value) ? value : [value])
+        .filter(answer => typeof answer === 'string' && answer.trim());
+}
+/* DOKU: Unicode-NFKC vereinheitlicht kompatible Zeichen; Kleinschreibung und Entfernen aller Leerraum- und Pd-Bindestrichzeichen machen den Vergleich toleranter. Dies ist keine unscharfe Rechtschreibprüfung. */
+function normalizeAnswer(text) {
+    return String(text).normalize('NFKC').toLocaleLowerCase('de-DE')
+        .replace(/[\s\p{Pd}]/gu, '');
+}
+/* DOKU: Liest Quiztypen aus alternativen Feldnamen; kommagetrennter Text wird in eine Liste umgewandelt. */
+function modes(raw) {
+    const value = raw.quizTypes ?? raw.quizType ?? raw['Quiz-Möglichkeit'] ?? '';
+    return Array.isArray(value) ? value : String(value).split(',').map(type => type.trim());
+}
+/* DOKU: Überführt die geladenen Felder in das Seitenformat. ID und Pfad bleiben für das Speichern des Lernstands erhalten; das Originalobjekt wird nicht verändert. */
+function normalize(raw) {
+    return {
+        id: raw.id, path: raw.path,
+        semester: raw.semester ?? String(raw.Semester ?? '').replace(/^Semester\s+/i, ''),
+        subject: raw.subject ?? raw.Fach,
+        topic: raw.topic ?? raw.Thema,
+        quizTypes: modes(raw),
+        question: raw.Frage ?? raw.question,
+        answers: acceptedAnswers(raw.Eingabe ?? raw.answers ?? raw.answer),
+        explanation: raw['Erklärung'] ?? raw.explanation ?? ''
+    };
+}
+/* DOKU: Prüft BE-Typ, Dashboardfilter und nutzbaren Fragetext samt mindestens einer Antwortvariante. */
+function matches(question) {
+    return question.quizTypes.includes('BE') &&
+        matchesFilters(question, selection) &&
+        typeof question.question === 'string' && question.question.trim() && question.answers.length > 0;
+}
+/* DOKU: Mischt eine Array-Kopie mit Fisher-Yates. Die Ausgangsliste bleibt erhalten; ein Neustart mischt die bereits gebildete Runde erneut. */
+function shuffle(items) {
+    const result = [...items];
+    for (let i = result.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
+}
+/* DOKU: Zeigt einen Fehlertext im Statusbereich und hebt ihn über CSS hervor; verändert keine gespeicherten Antworten. */
+function showError(message) {
+    $('status').textContent = message;
+    $('status').classList.remove('hidden');
+    $('status').classList.add('error');
+}
+
+/* ================================================================
+   3. FRAGE UND PUNKTSTAND ANZEIGEN
+   ================================================================ */
+/* DOKU: Überträgt die laufenden Richtig/Falsch-Zähler in Anzeige und barrierefreie Beschriftung. Die dauerhafte Speicherung erfolgt separat. */
+function updateScore() {
+    $('correct-count').textContent = correct;
+    $('wrong-count').textContent = wrong;
+    $('score').setAttribute('aria-label', `${correct} richtig, ${wrong} falsch`);
+}
+/* DOKU: Stellt die aktuelle Frage dar und setzt nur die Bedienelemente für diesen Frageschritt zurück. */
+function render() {
+    const question = round[index];
+    answered = false;
+    $('progress-label').textContent = `Fragen: ${round.length}`;
+    $('progress').max = round.length;
+    $('progress').value = index;
+    updateScore();
+    $('question').textContent = question.question;
+    $('text-input').value = '';
+    $('text-input').disabled = false;
+    $('check').disabled = true;
+    $('check').classList.remove('hidden');
+    $('next').classList.add('hidden');
+    $('next').textContent = index === round.length - 1 ? 'Ergebnis anzeigen' : 'Weiter';
+    $('verdict').classList.add('hidden');
+    $('explanation').classList.add('hidden');
+    $('status').classList.add('hidden');
+    $('status').classList.remove('error');
+    $('text-input').focus();
+}
+/* DOKU: Setzt den Durchlauf zurück. Beim ersten Start wird die geladene Auswahl begrenzt; all umgeht die sonstige Grenze von 40. Bei Neustarts wird die bestehende Runde neu gemischt. */
+function start() {
+    const count = selection.questionCount === 'all'
+        ? all.length : Math.min(selection.questionCount || 15, 40, all.length);
+    round = round.length ? shuffle(round) : shuffle(all).slice(0, count);
+    index = correct = wrong = 0;
+    $('result').classList.add('hidden');
+    $('play').classList.remove('hidden');
+            window.scrollTo({top:0,left:0,behavior:'instant'});
+    render();
+}
+
+/* ================================================================
+   4. FRAGEN AUS FIRESTORE LADEN
+   Auswahl von Semester, Fach, Thema und Lernstand berücksichtigen.
+   ================================================================ */
+/* DOKU: Lädt die Fragen erst für das freigegebene Konto. Die UID-Prüfung kommt aus private-auth.js; Firestore muss Zugriffe zusätzlich serverseitig erlauben. queueAnswer sichert Antworten lokal vor dem zeitversetzten Cloud-Abgleich. */
+onAuthStateChanged(auth, async current => {
+    if (!current) {
+        clearDataCache();
+        location.replace('login.html');
+        return;
+    }
+    if (user?.uid === current.uid) return;
+    user = current;
+    if (!validSelection) return;
+    try {
+        const questions = await loadRoundQuestions(db, user.uid, selection);
+        all = questions.map(normalize).filter(matches);
+        if (!all.length) {
+            showError('Für diese Auswahl sind noch keine Eingabe-Fragen gespeichert.');
+            return;
+        }
+        start();
+    } catch (error) {
+        console.error(error);
+        showError('Fragen konnten nicht geladen werden. Prüfe Anmeldung und Internetverbindung.');
+    }
+});
+
+/* ================================================================
+   5. ANTWORT PRÜFEN UND IM PERSÖNLICHEN LERNSTAND SPEICHERN
+   Nur exakt eine der hinterlegten Varianten zählt 1 Punkt.
+   Ohne Eingabe kann keine Frage bewertet werden.
+   ================================================================ */
+$('text-input').addEventListener('input', () => {
+    $('check').disabled = !$('text-input').value.trim();
+});
+$('text-input').addEventListener('keydown', event => {
+    if (event.key === 'Enter' && !answered && !busy && $('text-input').value.trim()) {
+        event.preventDefault();
+        $('check').click();
+    }
+});
+$('check').addEventListener('click', async () => {
+    if (answered || busy || !user) return;
+    const entered = $('text-input').value.trim();
+    if (!entered) return;
+    busy = true;
+    $('check').disabled = true;
+    const question = round[index];
+    const isCorrect = question.answers.some(answer => normalizeAnswer(answer) === normalizeAnswer(entered));
+    $('status').textContent = 'Antwort wird gesichert …';
+    try {
+        await queueAnswer(db, user.uid, question, {isCorrect, type: 'BE'});
+        answered = true;
+        busy = false;
+        if (isCorrect) correct++;
+        else wrong++;
+        updateScore();
+        $('text-input').disabled = true;
+        $('check').classList.add('hidden');
+        $('verdict').textContent = isCorrect
+            ? 'Richtig – 1 Punkt.'
+            : `Leider falsch – 0 Punkte. Eine richtige Antwort ist: ${question.answers[0]}.`;
+        $('verdict').classList.remove('hidden');
+        $('explanation').textContent = question.explanation;
+        $('explanation').classList.toggle('hidden', !question.explanation);
+        $('progress').value = index + 1;
+        $('next').classList.remove('hidden');
+        $('next').focus();
+        $('status').textContent = 'Antwort gesichert.';
+        $('status').classList.add('hidden');
+    } catch (error) {
+        console.error(error);
+        busy = false;
+        $('check').disabled = false;
+        showError('Speichern fehlgeschlagen. Bitte Eingabe erneut prüfen.');
+    }
+});
+
+/* ================================================================
+   6. NÄCHSTE FRAGE, ERGEBNIS UND NEUSTART
+   ================================================================ */
+$('next').addEventListener('click', () => {
+    if (!answered) return;
+    index++;
+    if (index < round.length) {
+        render();
+        return;
+    }
+    const percent = Math.round(correct / round.length * 100);
+    const grade = percent >= 92 ? 1 : percent >= 81 ? 2 : percent >= 67 ? 3 :
+        percent >= 50 ? 4 : percent >= 30 ? 5 : 6;
+    $('grade').textContent = grade;
+    $('summary').textContent = `${correct} richtig, ${wrong} falsch`;
+    $('play').classList.add('hidden');
+    $('result').classList.remove('hidden');
+                window.scrollTo({top:0,left:0,behavior:'instant'});
+
+});
+$('restart').addEventListener('click', start);
+</script>
+</body>
+</html>

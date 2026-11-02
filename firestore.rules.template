@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+ match /databases/{database}/documents {
+  function owner() { return request.auth != null && request.auth.uid == 'OWNER_UID_HERE'; }
+  match /privateContent/{documentId} { allow get: if owner(); allow list, write: if false; }
+  match /{semester}/{subject}/{topic}/{packageId} {
+   allow get: if owner() && semester.matches('Semester_[^/]+')
+      && packageId.matches('(pack|meta)-[a-f0-9]{64}');
+   allow list, write: if false;
+  }
+  match /users/{uid}/learningState/{shard} {
+   allow get: if owner() && uid == request.auth.uid && shard.matches('s(0[0-9]|1[0-5])');
+   allow list: if owner() && uid == request.auth.uid && request.query.limit <= 17;
+   allow create, update: if owner() && uid == request.auth.uid && shard.matches('s(0[0-9]|1[0-5])')
+     && request.resource.data.keys().hasOnly(['entries']) && request.resource.data.entries is map;
+   allow delete: if false;
+  }
+  match /users/{uid}/syncDevices/{deviceId} {
+   allow get: if owner() && uid == request.auth.uid;
+   allow list: if false;
+   allow create: if owner() && uid == request.auth.uid
+      && request.resource.data.keys().hasOnly(['lastSeq','updatedAt'])
+      && request.resource.data.lastSeq is int && request.resource.data.lastSeq > 0;
+   allow update: if owner() && uid == request.auth.uid
+      && request.resource.data.keys().hasOnly(['lastSeq','updatedAt'])
+      && request.resource.data.lastSeq is int && request.resource.data.lastSeq > resource.data.lastSeq;
+   allow delete: if false;
+  }
+  match /{document=**} { allow read, write: if false; }
+ }
+}

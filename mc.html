@@ -1,0 +1,420 @@
+<!doctype html>
+<!-- DOKU: Multiple-Choice-Runde mit einer oder mehreren richtigen Optionen. Nur die exakt übereinstimmende Auswahl zählt als richtig. -->
+
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multiple Choice – Lernhub</title>
+<style>
+/* DOKU: Die eingebetteten Styles legen Seitenlayout, Theme-Farben und Zustände der Bedienelemente fest. CSS-Klassen wie hidden, correct oder wrong werden vom Seitenskript gesetzt; sie übernehmen keine Zugriffsprüfung. */
+/* ================================================================
+   THEME-FARBEN: Diese drei Blöcke bestimmen das Aussehen des Quiz.
+   Die Farben orientieren sich an der Theme-Auswahl im Dashboard.
+   ================================================================ */
+* { box-sizing: border-box; }
+body {
+  --page:#2a1b3d; --surface:#d589b8; --question-bg:#fba8d7;
+  --ink:#2e0a42; --muted:#3b1640; --accent:#c02c7d;
+  --edge:#d987b3; --question-ink:#321b36;
+  margin:0; min-height:100vh; color:var(--ink);
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:radial-gradient(circle at 85% 6%,#764274,transparent 34%),var(--page);
+}
+body.theme-himalaya {
+  --page:#24748d; --surface:#78c1c7; --question-bg:#b7e2f8;
+  --ink:#173b45; --muted:#24495f; --accent:#187d91;
+  --edge:#31d5d7; --question-ink:#153947;
+  background:radial-gradient(circle at 85% 6%,#7dbdc9,transparent 35%),var(--page);
+}
+body.theme-dschungel {
+  --page:#0d1b12; --surface:#25854a; --question-bg:#64c06f;
+  --ink:#0b1a05; --muted:#6fd85a; --accent:#cc6c23;
+  --edge:#628961; --question-ink:#2f291a;
+  background:radial-gradient(circle at 85% 6%,#284b31,transparent 35%),var(--page);
+}
+.hidden { display:none !important; }
+.workspace { width:min(100% - 2rem,760px); margin:1.25rem auto 3rem; }
+
+/* OBERE LEISTE: Nur ein kleiner Zurück-Button, außerhalb der Quizbox. */
+.toolbar { display:flex; justify-content:flex-end; min-height:56px; align-items:center; }
+.exit {
+  display:inline-flex; align-items:center; justify-content:center;
+  min-height:44px; padding:.6rem 1.3rem; border-radius:999px;
+  border:2px solid var(--edge); background:var(--surface);
+  color:var(--ink); text-decoration:none; font-weight:650;
+}
+.exit:hover,.exit:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+
+/* QUIZBOX: Thema und Fortschritt stehen sichtbar im oberen Bereich. */
+main {
+  padding:clamp(1.1rem,4vw,2rem); border:2px solid var(--edge);
+  border-radius:26px; background:var(--surface); box-shadow:0 20px 55px #0003;
+}
+h1 { margin:0; font-size:clamp(1.45rem,3vw,2rem); line-height:1.2; }
+.context { margin:.35rem 0 1.3rem; color:var(--muted); font-size:.95rem; }
+.progress-row { display:flex; justify-content:space-between; align-items:baseline; gap:1rem; font-weight:700; }
+.progress-row p { margin:0 0 .5rem; }
+.score { display:flex; gap:.5rem; align-items:center; font-variant-numeric:tabular-nums; }
+.score .correct-count { color:#03ab3b; }
+.score .wrong-count { color:#d2173d; }
+body.theme-dschungel .score .correct-count { color:#1fdb44; }
+body.theme-dschungel .score .wrong-count { color:#f93e3e; }
+.score .separator { opacity:.65; }
+progress { display:block; width:100%; height:1.8rem; accent-color:var(--accent); }
+progress::-webkit-progress-bar { background:var(--question-bg); border-radius:999px; }
+progress::-webkit-progress-value { background:var(--accent); border-radius:999px; }
+progress::-moz-progress-bar { background:var(--accent); border-radius:999px; }
+#status { margin:1rem 0; color:var(--muted); }
+#status.error { color:#ad2944; font-weight:650; }
+body.theme-dschungel #status.error { color:#ff9696; }
+
+/* FRAGE: Der farbige Kasten trennt die Frage von den Auswahloptionen. */
+.question-box {
+  display:grid; place-items:center; width:100%; min-height:clamp(190px,31vw,280px);
+  margin:1.35rem 0 1.15rem; padding:clamp(1.35rem,4vw,2.5rem);
+  border:3px solid var(--edge); border-radius:22px;
+  background:var(--question-bg); color:var(--question-ink);
+  box-shadow:0 9px 24px #0002;
+}
+#question { margin:0; text-align:center; font-family:Georgia,"Times New Roman",serif; font-size:clamp(1.2rem,2.8vw,1.65rem); font-weight:650; line-height:1.5; overflow-wrap:anywhere; }
+
+/* AUSWAHLOPTIONEN, AUSWERTUNG UND ERKLÄRUNG. */
+button { font:inherit; cursor:pointer; min-height:48px; border-radius:14px; }
+button:disabled { opacity:.62; cursor:not-allowed; }
+.options { display:grid; grid-template-columns:1fr; gap:.7rem; }
+.options button {
+  padding:.85rem 1rem; border:2px solid var(--edge); text-align:left;
+  background:var(--question-bg); color:var(--question-ink); font-family:Georgia,"Times New Roman",serif; font-size:1.08rem;
+}
+.options button.selected { border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); }
+.options button.correct { border-color:#068f16; background:#82f6b1; color:#01451c; }
+.options button.wrong { border-color:#d2212d; background:#fea8a8; color:#030000; }
+.primary {
+  width:100%; margin-top:1.2rem; padding:.85rem 1rem;
+  background:var(--accent); border:2px solid var(--accent); color:#ffffff; font-weight:700;
+}
+body.theme-dschungel .primary { color:#17251b; }
+.explanation { padding:1rem 1.2rem; border-radius:14px; background:var(--question-bg); color:var(--question-ink); margin-top:1rem; line-height:1.6; }
+#verdict { font-weight:700; margin:1.1rem 0 .4rem; }
+
+
+
+.result-actions { display:flex; gap:1rem; align-items:center; margin-top:1.4rem; }
+.result-actions .primary { width:auto; flex:1; margin:0; }
+@media(max-width:500px) {
+  .workspace { width:min(100% - 1rem,760px); margin-top:.5rem; }
+  .options { gap:.55rem; }
+  .result-actions { flex-direction:column; align-items:stretch; }
+}
+
+/* Kompakte Ergebnisansicht: Note zuerst, keine Fragenliste. */
+#result { text-align:center; }
+#result h2 { font-size:1.15rem; margin:.5rem 0; }
+#result .grade-label { margin:.8rem 0 0; font-size:1rem; }
+#grade { display:block; font-size:clamp(3.5rem,14vw,5rem); font-weight:800; line-height:1.1; }
+#summary { margin:.7rem 0; font-size:1.1rem; font-weight:650; }
+#result .result-actions { margin-top:1rem; gap:.65rem; }
+#result .result-actions .primary { width:auto; flex:initial; margin:0; padding:.65rem 1rem; }
+#result .result-actions { justify-content:center; }
+</style><link rel="stylesheet" href="theme-forest.css">
+</head><body class="theme-einhorn">
+<div class="workspace">
+  <!-- NAVIGATION: Zurück oben rechts, Statistik erscheint hier nicht. -->
+  <div class="toolbar"><a class="exit" href="quizBit.html">Zurück</a></div>
+  <main>
+    <!-- THEMA: Hauptüberschrift statt der großen Bezeichnung "Multiple Choice". -->
+    <h1 id="topic-title">Thema</h1>
+    <p id="context" class="context"></p>
+    <p id="status" role="status">Fragen werden geladen …</p>
+
+    <section id="play" class="hidden" aria-label="Multiple Choice">
+      <!-- FORTSCHRITT: links Gesamtzahl, rechts richtig | falsch. -->
+      <div class="progress-row">
+        <p id="progress-label"></p>
+        <p id="score" class="score" aria-label="0 richtig, 0 falsch">
+          <span id="correct-count" class="correct-count">0</span>
+          <span class="separator" aria-hidden="true">|</span>
+          <span id="wrong-count" class="wrong-count">0</span>
+        </p>
+      </div>
+      <progress id="progress" value="0" max="1" aria-label="Beantwortete Fragen"></progress>
+
+      <!-- FRAGE: Eigener hervorgehobener Kasten oberhalb der Antworten. -->
+      <div class="question-box"><h2 id="question"></h2></div>
+      <div id="options" class="options"></div>
+      <button id="check" type="button" class="primary" disabled>Auswerten</button>
+      <p id="verdict" role="status" class="hidden"></p>
+      <div id="explanation" class="explanation hidden"></div>
+      <button id="next" type="button" class="primary hidden">Weiter</button>
+    </section>
+
+    <!-- ABSCHLUSS: Kompakte Bewertung und Neustart. -->
+    <section id="result" class="hidden">
+      <h2>Auswertung</h2><p class="grade-label">Deine Note<strong id="grade"></strong></p><p id="summary"></p>
+      <div class="result-actions">
+        <button id="restart" type="button" class="primary">Neu mischen und nochmal spielen</button>
+        <a href="quizBit.html" class="exit">Beenden</a>
+      </div>
+    </section>
+  </main>
+</div>
+<script type="module">
+import { matchesFilters, selectionLabel } from "./quiz-data-core.js";
+/* ================================================================
+   1. FIREBASE: Anmeldung, Fragen und persönlicher Lernstand
+   Die öffentliche Webkonfiguration wird über firebase-config.js geladen.
+   ================================================================ */
+import {queueAnswer} from './private-sync.js';
+import {onAuthStateChanged,signOut} from './private-auth.js';
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js';
+import { getAuth } from 'https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js';
+import { getFirestore } from 'https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js';
+import { firebaseConfig } from './firebase-config.js';
+import { loadRoundQuestions, clearDataCache, readQuizSelection } from './quiz-data.js';
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const $ = id => document.getElementById(id);
+
+/* ================================================================
+   2. AUSWAHL: Theme und Filter kommen vom Dashboard.
+   Überschrift: "Alle Themen" oder der ausgewählte Themenname.
+   ================================================================ */
+const theme = localStorage.getItem('lernhubTheme');
+if (['theme-einhorn', 'theme-himalaya', 'theme-dschungel'].includes(theme)) {
+    document.body.className = theme;
+}
+const selection = readQuizSelection();
+const validSelection = selection?.quizType === 'MC' && selection.semester && selection.subject && selection.topic;
+if (validSelection) {
+    $('topic-title').textContent = selectionLabel(selection.topic, 'topic');
+    const semester = selectionLabel(selection.semester, 'semester');
+    const subject = selectionLabel(selection.subject, 'subject');
+    $('context').textContent = `${semester} · ${subject}`;
+} else {
+    $('status').textContent = 'Wähle zuerst Semester, Fach, Thema und Multiple Choice im Dashboard.';
+    $('status').classList.add('error');
+}
+
+/* ================================================================
+   3. FRAGEN: Datenbankfelder in ein gemeinsames Format übertragen.
+   Eine Frage kann eine oder mehrere korrekte Optionen A–D haben.
+   ================================================================ */
+const letters = ['A', 'B', 'C', 'D'];
+let user = null;
+let all = [];                 // Alle Fragen der gewählten Auswahl.
+let round = [];               // Fragen dieses Durchlaufs.
+let index = 0;                // Position in round, beginnt bei 0.
+let correct = 0;
+let wrong = 0;
+let answered = false;
+let chosen = new Set();       // Vom Nutzer gewählte Buchstaben.
+
+/* DOKU: Überführt die geladenen Felder in das Seitenformat. ID und Pfad bleiben für das Speichern des Lernstands erhalten; das Originalobjekt wird nicht verändert. */
+function normalize(raw) {
+    return {
+        id: raw.id, path: raw.path,
+        question: raw['Frage'] ?? raw.question,
+        options: raw.options ?? Object.fromEntries(letters.map(letter => [letter, raw[`Antwortoption ${letter}`]])),
+        correct: Array.isArray(raw.correct) ? raw.correct.join(',') : raw['Korrekte-Antwort'] ?? raw.correct,
+        explanation: raw['Erklärung'] ?? raw.explanation
+    };
+}
+
+/* DOKU: Prüft die für diese Darstellung benötigten Frage- und Antwortfelder. Ungültige Datensätze werden beim Laden herausgefiltert. */
+function valid(question) {
+    const answers = String(question.correct || '').split(',').map(value => value.trim()).filter(Boolean);
+    return Boolean(question.question && question.explanation) &&
+        letters.every(letter => typeof question.options?.[letter] === 'string' && question.options[letter]) &&
+        answers.length >= 1 && answers.length <= 4 &&
+        new Set(answers).size === answers.length && answers.every(letter => letters.includes(letter));
+}
+
+/* DOKU: Erzeugt ein Set korrekter Buchstaben. Beim Prüfen müssen Größe und alle Elemente mit chosen übereinstimmen; Teiltreffer erhalten keine Punkte. */
+function solution(question) {
+    return new Set(question.correct.split(',').map(value => value.trim()));
+}
+
+/* DOKU: Mischt eine Array-Kopie mit Fisher-Yates. Die Ausgangsliste bleibt erhalten; ein Neustart mischt die bereits gebildete Runde erneut. */
+function shuffle(items) {
+    const result = [...items];
+    for (let i = result.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
+}
+
+/* DOKU: Zeigt einen Fehlertext im Statusbereich und hebt ihn über CSS hervor; verändert keine gespeicherten Antworten. */
+function showError(message) {
+    $('status').textContent = message;
+    $('status').classList.remove('hidden');
+    $('status').classList.add('error');
+}
+
+/* ================================================================
+   4. ANZEIGE: Thema, Fortschritt, Frage und vier Antwort-Buttons.
+   Hier lassen sich die sichtbaren Texte im Quiz leicht ändern.
+   ================================================================ */
+/* DOKU: Überträgt die laufenden Richtig/Falsch-Zähler in Anzeige und barrierefreie Beschriftung. Die dauerhafte Speicherung erfolgt separat. */
+function updateScore() {
+    $('correct-count').textContent = correct;
+    $('wrong-count').textContent = wrong;
+    $('score').setAttribute('aria-label', `${correct} richtig, ${wrong} falsch`);
+}
+
+/* DOKU: Stellt die aktuelle Frage dar und setzt nur die Bedienelemente für diesen Frageschritt zurück. */
+function render() {
+    const question = round[index];
+    answered = false;
+    chosen = new Set();
+
+    // Hier steht die Gesamtzahl der Fragen des aktuellen Durchlaufs.
+    $('progress-label').textContent = `Fragen: ${round.length}`;
+    $('progress').max = round.length;
+    $('progress').value = index;
+    updateScore();
+    $('question').textContent = question.question;
+
+    $('verdict').classList.add('hidden');
+    $('explanation').classList.add('hidden');
+    $('next').classList.add('hidden');
+    $('check').classList.remove('hidden');
+    $('check').disabled = true;
+
+    const container = $('options');
+    container.replaceChildren();
+    for (const letter of letters) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = `${letter}: ${question.options[letter]}`;
+        button.dataset.letter = letter;
+        button.setAttribute('aria-pressed', 'false');
+        button.addEventListener('click', () => {
+            if (answered) return;
+            if (chosen.has(letter)) chosen.delete(letter);
+            else chosen.add(letter);
+            button.classList.toggle('selected', chosen.has(letter));
+            button.setAttribute('aria-pressed', String(chosen.has(letter)));
+            $('check').disabled = chosen.size === 0;
+        });
+        container.appendChild(button);
+    }
+    $('status').classList.add('hidden');
+    $('status').classList.remove('error');
+}
+
+/* DOKU: Setzt den Durchlauf zurück. Beim ersten Start wird die geladene Auswahl begrenzt; all umgeht die sonstige Grenze von 40. Bei Neustarts wird die bestehende Runde neu gemischt. */
+function start() {
+    // "Alle verfügbaren" ist unabhängig von der üblichen Obergrenze 40.
+    const count = selection.questionCount === 'all'
+        ? all.length
+        : Math.min(selection.questionCount || 15, 40, all.length);
+    round = round.length ? shuffle(round) : shuffle(all).slice(0, count);
+    index = correct = wrong = 0;
+    $('result').classList.add('hidden');
+    $('play').classList.remove('hidden');
+            window.scrollTo({top:0,left:0,behavior:'instant'});
+    render();
+}
+
+/* ================================================================
+   5. FRAGEN LADEN: Semester, Fach, Thema und Lernstand-Auswahl.
+   Die Frage-IDs wurden zuvor im Dashboard ausgewählt.
+   ================================================================ */
+/* DOKU: Lädt die Fragen erst für das freigegebene Konto. Die UID-Prüfung kommt aus private-auth.js; Firestore muss Zugriffe zusätzlich serverseitig erlauben. queueAnswer sichert Antworten lokal vor dem zeitversetzten Cloud-Abgleich. */
+onAuthStateChanged(auth, async current => {
+    if (!current) {
+        clearDataCache();
+        location.replace('login.html');
+        return;
+    }
+    if (user?.uid === current.uid) return;
+    user = current;
+    if (!validSelection) return;
+    try {
+        const questions = await loadRoundQuestions(db, user.uid, selection);
+        all = questions.map(normalize).filter(valid);
+        if (!all.length) {
+            showError('Für diese Auswahl sind noch keine gültigen Multiple-Choice-Fragen gespeichert.');
+            return;
+        }
+        start();
+    } catch (error) {
+        console.error(error);
+        showError('Fragen konnten nicht geladen werden. Prüfe Anmeldung, Regeln und Internetverbindung.');
+    }
+});
+
+/* ================================================================
+   6. AUSWERTEN UND SPEICHERN
+   Genau die richtige Kombination ergibt 1 Punkt. Nach dem Speichern
+   werden richtige Optionen, Fehler und die Erklärung angezeigt.
+   ================================================================ */
+$('check').addEventListener('click', async () => {
+    if (answered || !chosen.size || !user) return;
+    answered = true;
+    $('check').disabled = true;
+    const question = round[index];
+    const right = solution(question);
+    const isCorrect = chosen.size === right.size && [...chosen].every(letter => right.has(letter));
+    $('status').textContent = 'Antwort wird gesichert …';
+
+    try {
+        // Die Statistik gehört zum angemeldeten Konto und zur Firestore-Frage-ID.
+        await queueAnswer(db, user.uid, question, {isCorrect, type: 'MC'});
+
+        if (isCorrect) correct++;
+        else wrong++;
+        updateScore();
+        document.querySelectorAll('#options button').forEach(button => {
+            const letter = button.dataset.letter;
+            button.disabled = true;
+            button.classList.remove('selected');
+            if (right.has(letter)) button.classList.add('correct');
+            else if (chosen.has(letter)) button.classList.add('wrong');
+        });
+        $('verdict').textContent = isCorrect
+            ? 'Exakt richtig – 1 Punkt.'
+            : `Nicht exakt richtig – 0 Punkte. Korrekt: ${letters.filter(letter => right.has(letter)).join(', ')}.`;
+        $('verdict').classList.remove('hidden');
+        $('explanation').textContent = question.explanation;
+        $('explanation').classList.remove('hidden');
+        $('progress').value = index + 1;
+        $('check').classList.add('hidden');
+        $('next').classList.remove('hidden');
+        $('status').textContent = 'Antwort gesichert.';
+        $('status').classList.add('hidden');
+    } catch (error) {
+        console.error(error);
+        answered = false;
+        $('check').disabled = false;
+        showError('Speichern fehlgeschlagen. Bitte versuche die Auswertung erneut.');
+    }
+});
+
+/* ================================================================
+   7. WEITER, ABSCHLUSS UND NEUSTART
+   ================================================================ */
+$('next').addEventListener('click', () => {
+    if (!answered) return;
+    index++;
+    if (index < round.length) {
+        render();
+        return;
+    }
+    const percent = Math.round(correct / round.length * 100);
+    const grade = percent >= 92 ? 1 : percent >= 81 ? 2 : percent >= 67 ? 3 :
+        percent >= 50 ? 4 : percent >= 30 ? 5 : 6;
+    $('grade').textContent = grade;
+    $('summary').textContent = `${correct} richtig, ${wrong} falsch`;
+    $('play').classList.add('hidden');
+    $('result').classList.remove('hidden');
+                window.scrollTo({top:0,left:0,behavior:'instant'});
+    $('status').textContent = 'Quiz abgeschlossen.';
+    $('status').classList.add('hidden');
+
+
+});
+$('restart').addEventListener('click', start);
+</script>
+</body></html>

@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<!-- DOKU: Zeigt Lernbedarf und zeitliche Frische für bewertbare Fragen (RF/MC/BE). Nutzt Metadaten und Lernstände, ohne vollständige Fragenpakete zu laden. -->
+
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistik – FIAE Trainer</title>
+
+    <link rel="stylesheet" href="/footer-style.css">
+
+    <style>
+/* DOKU: Die eingebetteten Styles legen Seitenlayout, Theme-Farben und Zustände der Bedienelemente fest. CSS-Klassen wie hidden, correct oder wrong werden vom Seitenskript gesetzt; sie übernehmen keine Zugriffsprüfung. */
+        /* ============================================================
+           GRUNDSTRUKTUR
+           ============================================================ */
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --card-bg: rgba(255, 255, 255, 0.94);
+            --card-a: #ffffff;
+            --card-b: #ffffff;
+
+            --header-bg: rgba(255, 255, 255, 0.9);
+            --theme-ring: var(--accent);
+            --menu-btn-bg: rgba(255, 255, 255, 0.9);
+            --menu-btn-fg: var(--text-main);
+
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --accent: #315efb;
+            --accent-hover: #244bd1;
+
+            --correct: #2e9b68;
+            --wrong: #d94b4b;
+
+            /*
+             * Zwei zusätzliche Kategorie-Farben für die
+             * Qualitäts-Balken. --correct und --wrong existieren
+             * bereits (auch in den Themes, z. B. Dschungel) und
+             * werden hier für "Lernbedarf gering" bzw. "hoch"
+             * wiederverwendet, damit die Farbwelt konsistent bleibt.
+             */
+            --cat-neu: #7c8aa5;
+            --cat-medium: #e29a3c;
+
+            --border: color-mix(in srgb, var(--text-muted) 28%, transparent);
+            --disabled: color-mix(in srgb, var(--text-muted) 45%, transparent);
+            --shadow: 0 4px 22px rgba(0, 0, 0, 0.12);
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            color: var(--text-main);
+            min-height: 100vh;
+            transition: color 0.25s ease;
+        }
+
+        /* ============================================================
+           AUTH LOADING
+           ============================================================ */
+
+        body.auth-checking > *:not(#authLoading) {
+            visibility: hidden;
+        }
+
+        #authLoading {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0d1b12;
+            color: white;
+            font-size: 16px;
+            z-index: 9999;
+        }
+
+        body:not(.auth-checking) #authLoading {
+            display: none;
+        }
+
+        /* ============================================================
+           MAIN
+           ============================================================ */
+
+        main {
+            width: min(1100px, calc(100% - 40px));
+            margin: 40px auto 70px;
+        }
+
+        .welcome {
+            margin-bottom: 24px;
+        }
+
+        .welcome h1 {
+            font-size: 30px;
+            margin-bottom: 8px;
+        }
+
+        .welcome p {
+            color: var(--text-muted);
+        }
+
+        /* ============================================================
+           GESAMT-SCORE-KARTE
+           ============================================================ */
+
+        .overall-card {
+            background: linear-gradient(135deg, var(--card-a), var(--card-b));
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 24px 30px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .overall-card h2 {
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+
+        .overall-card p {
+            color: var(--text-muted);
+            font-size: 13px;
+            max-width: 480px;
+        }
+
+        #gesamtScore {
+            font-size: 34px;
+            font-weight: 800;
+            color: var(--accent);
+        }
+
+        /* ============================================================
+           LEGENDE
+           ============================================================ */
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 28px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-swatch {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        .swatch-neu    { background: var(--cat-neu); }
+        .swatch-hoch   { background: var(--wrong); }
+        .swatch-medium { background: var(--cat-medium); }
+        .swatch-gering { background: var(--correct); }
+
+        /* ============================================================
+           SEMESTER-SEKTIONEN
+           ============================================================ */
+
+        .semester-section {
+            background: linear-gradient(135deg, var(--card-a), var(--card-b));
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 26px 28px;
+            box-shadow: var(--shadow);
+            margin-bottom: 22px;
+        }
+
+        .semester-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .semester-header h2 {
+            font-size: 20px;
+        }
+
+        .score-badge {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--accent);
+            background: color-mix(in srgb, var(--accent) 10%, transparent);
+            padding: 5px 12px;
+            border-radius: 999px;
+        }
+
+        /* ============================================================
+           FACH-ZEILEN
+           ============================================================ */
+
+        .subject-row {
+            padding: 14px 0;
+            border-top: 1px solid var(--border);
+        }
+
+        .subject-row:first-of-type {
+            border-top: none;
+        }
+
+        .subject-name {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .subject-bar {
+            display: flex;
+            width: 100%;
+            height: 16px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: var(--border);
+        }
+
+        .subject-bar.empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: var(--text-muted);
+            height: 16px;
+        }
+
+        .bar-segment {
+            height: 100%;
+        }
+
+        .bar-neu    { background: var(--cat-neu); }
+        .bar-hoch   { background: var(--wrong); }
+        .bar-medium { background: var(--cat-medium); }
+        .bar-gering { background: var(--correct); }
+
+        .subject-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 6px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .subject-meta .freshness {
+            font-weight: 600;
+        }
+
+        /* THEMA-ZEILEN: Unter jedem Fach erscheinen die Themen aus Firestore. */
+        .topic-row {
+            margin: 14px 0 4px 14px;
+            padding: 10px 0 4px 14px;
+            border-left: 3px solid var(--accent);
+        }
+
+        .topic-row .subject-name {
+            font-weight: 500;
+        }
+
+        /* ============================================================
+           LADEHINWEIS
+           ============================================================ */
+
+        #statistikLoading {
+            font-size: 14px;
+            color: var(--text-muted);
+            padding: 20px 0;
+        }
+
+        /* ============================================================
+           RESPONSIVE
+           ============================================================ */
+
+        @media (max-width: 700px) {
+            main {
+                width: calc(100% - 24px);
+                margin-top: 25px;
+            }
+
+            .semester-section {
+                padding: 18px;
+            }
+
+            .overall-card {
+                padding: 18px;
+            }
+        }
+    </style>
+<link rel="stylesheet" href="theme-forest.css">
+</head>
+
+<body class="theme-einhorn auth-checking">
+
+    <!-- ============================================================
+         AUTHENTICATION LOADING
+         ============================================================ -->
+
+    <div id="authLoading">
+        Anmeldung wird geprüft …
+    </div>
+
+    <!-- ============================================================
+         GLOBALER HEADER
+         ============================================================ -->
+
+    <div id="globalHeaderContainer"></div>
+
+    <!-- ============================================================
+         HAUPTINHALT
+         ============================================================ -->
+
+    <main>
+
+        <section class="welcome">
+            <h1>Statistik</h1>
+            <p>Dein Lernstand nach Semester, Fach und Thema – gut für die Prüfungsvorbereitung.</p>
+        </section>
+
+        <section class="overall-card">
+            <div>
+                <h2>Gesamt-Frische</h2>
+                <p>
+                    Wie aktuell dein Wissen über alle vorhandenen Semester hinweg ist.
+                    100 % bedeutet: alle Fragen wurden kürzlich frisch geübt.
+                </p>
+            </div>
+            <div id="gesamtScore">–</div>
+        </section>
+
+        <div class="legend">
+            <div class="legend-item"><span class="legend-swatch swatch-neu"></span> Neue Fragen</div>
+            <div class="legend-item"><span class="legend-swatch swatch-hoch"></span> Lernbedarf hoch</div>
+            <div class="legend-item"><span class="legend-swatch swatch-medium"></span> Lernbedarf medium</div>
+            <div class="legend-item"><span class="legend-swatch swatch-gering"></span> Lernbedarf gering</div>
+        </div>
+
+        <p id="statistikLoading">Statistik wird geladen …</p>
+
+        <div id="statistikContainer"></div>
+
+    </main>
+
+    <!-- ============================================================
+         FOOTER
+         ============================================================ -->
+
+    <footer id="siteFooter">
+        <!-- Der bestehende Footer wird über footer-app.js aufgebaut. -->
+    </footer>
+
+    <!-- ============================================================
+         FIREBASE / STATISTIK-LOGIK
+         ============================================================ -->
+
+    <script type="module">
+
+        /* ============================================================
+           GLOBALEN HEADER LADEN
+           ============================================================ */
+
+        /* DOKU: Lädt das gleichnamige lokale Headerfragment. Styles und Skripte werden bewusst als neue Elemente eingefügt; daher darf dieser Pfad nur vertrauenswürdigen Projektcode liefern. */
+async function loadGlobalHeader() {
+            try {
+                const response = await fetch("header-global.html");
+
+                if (!response.ok) {
+                    throw new Error("header-global.html konnte nicht geladen werden.");
+                }
+
+                const headerHtml = await response.text();
+                const parser = new DOMParser();
+                const headerDocument = parser.parseFromString(headerHtml, "text/html");
+                const container = document.getElementById("globalHeaderContainer");
+
+                headerDocument.querySelectorAll("style").forEach((styleElement) => {
+                    const style = document.createElement("style");
+                    style.textContent = styleElement.textContent;
+                    document.head.appendChild(style);
+                });
+
+                Array.from(headerDocument.body.children).forEach((element) => {
+                    if (element.tagName !== "SCRIPT") {
+                        container.appendChild(document.importNode(element, true));
+                    }
+                });
+
+                headerDocument.querySelectorAll("script").forEach((scriptElement) => {
+                    const script = document.createElement("script");
+
+                    if (scriptElement.src) {
+                        script.src = scriptElement.src;
+                    } else {
+                        script.textContent = scriptElement.textContent;
+                    }
+
+                    document.body.appendChild(script);
+                });
+
+            } catch (error) {
+                console.error("Globaler Header konnte nicht geladen werden:", error);
+            }
+        }
+
+        await loadGlobalHeader();
+
+
+        /* ============================================================
+           FIREBASE IMPORTS
+           ============================================================ */
+
+        import {onAuthStateChanged,signOut} from './private-auth.js';
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+
+        import { getAuth } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+
+        import {
+            getFirestore,
+        } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+        import { firebaseConfig } from "./firebase-config.js";
+
+
+        import { loadInventory, loadAllStats, clearDataCache } from './quiz-data.js';
+
+        /* ============================================================
+           FIREBASE INITIALISIEREN
+           ============================================================ */
+
+        const firebaseApp = initializeApp(firebaseConfig);
+        const auth = getAuth(firebaseApp);
+        const db = getFirestore(firebaseApp);
+
+
+        /* ============================================================
+           KONFIGURATION
+           ------------------------------------------------------------
+           FRESHNESS_DECAY_DAYS: nach wie vielen Tagen ohne Wiederholung
+           der Frische-Score einer Frage auf 0 % gesunken ist.
+           6 Monate ≈ 182 Tage.
+           ============================================================ */
+
+        const FRESHNESS_DECAY_DAYS = 182;
+
+
+        /*
+         * Semester, Fächer und Themen werden weiter unten ausschließlich
+         * aus den vorhandenen Firestore-Fragen ermittelt. Neue Inhalte
+         * brauchen deshalb keinen Eintrag in dieser Datei.
+         */
+        function semesterLabel(semester) {
+            return semester === "extra" ? "Extra" : /^\d+$/.test(semester) ? `${semester}. Semester` : semester;
+        }
+
+        const sortGerman = (a, b) => a.localeCompare(b, "de", { numeric: true });
+
+
+        /* ============================================================
+           AUTHENTICATION GUARD
+           ============================================================ */
+
+        let loadedStatsUser = null;
+        onAuthStateChanged(auth, async (user) => {
+
+            if (!user) {
+                clearDataCache();
+                window.location.replace("login.html");
+                return;
+            }
+
+            document.body.classList.remove("auth-checking");
+
+            if (loadedStatsUser === user.uid) return;
+            loadedStatsUser = user.uid;
+            await ladeUndRenderStatistik(user.uid);
+
+        });
+
+
+        /* ============================================================
+           FRISCHE-SCORE FÜR EINE EINZELNE FRAGE
+           ------------------------------------------------------------
+           Nie gespielt → 0. Heute gespielt → 100. Danach linearer
+           Verfall bis 0 nach FRESHNESS_DECAY_DAYS Tagen.
+           ============================================================ */
+
+        /* DOKU: Liefert einen Wert von 0 bis 100 abhängig vom letzten Spielen: linearer Rückgang über 182 Tage. Dieser Wert beschreibt Wiederholungszeit, nicht den Anteil richtiger Antworten. */
+function berechneFrischeScore(lastPlayed) {
+
+            if (!lastPlayed) {
+                return 0;
+            }
+
+            const lastDate =
+                typeof lastPlayed.toDate === "function"
+                    ? lastPlayed.toDate()
+                    : new Date(lastPlayed);
+
+            const tageVergangen =
+                (Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
+
+            const score =
+                100 - (tageVergangen / FRESHNESS_DECAY_DAYS) * 100;
+
+            return Math.max(0, Math.min(100, score));
+
+        }
+
+
+        /* ============================================================
+           KATEGORIE FÜR EINE FRAGE BESTIMMEN
+           ------------------------------------------------------------
+           Dieselbe Logik wie in quizBit.html.
+           ============================================================ */
+
+        /* DOKU: Kategorisiert über die bisherige Fehlerquote: mindestens 70 % hoch, mindestens 35 % mittel, sonst gering. Ohne beantwortete Runde gilt die Frage als neu. */
+function bestimmeKategorie(stats) {
+
+            if (!(stats?.timesPlayed > 0)) {
+                return "neu";
+            }
+
+            const wrongPercent = ((stats.timesWrong || 0) / stats.timesPlayed) * 100;
+
+            if (wrongPercent >= 70) return "hoch";
+            if (wrongPercent >= 35) return "medium";
+            return "gering";
+
+        }
+
+
+        /* ============================================================
+           STATISTIK LADEN: DYNAMISCHE SEMESTER/FÄCHER/THEMEN
+           ------------------------------------------------------------
+           Die Fragenübersicht und persönliche Statistiken werden geladen;
+           vollständige Frageinhalte werden nicht abgefragt. Anschließend gruppieren wir nur die vorhandenen
+           bewerteten Fragen (RF, MC und BE). Flashcards zählen nicht zur
+           Punkte- und Fehlerstatistik, weil sie keine Punkte vergeben.
+           ============================================================ */
+
+        /* DOKU: Initialisiert Zähler und Frischesumme für ein Fach oder Thema. */
+function leereGruppe() {
+            return {
+                kategorien: { neu: 0, hoch: 0, medium: 0, gering: 0 },
+                gesamtAnzahl: 0,
+                frischeSumme: 0,
+                fachScore: 0
+            };
+        }
+
+        /* DOKU: Zählt jede Frage in ihrer Bedarfsgruppe; neue Fragen erhöhen den Nenner, tragen aber keine Frische bei. */
+function frageZuGruppe(gruppe, stats) {
+            const kategorie = bestimmeKategorie(stats);
+            gruppe.kategorien[kategorie]++;
+            gruppe.gesamtAnzahl++;
+            if (kategorie !== "neu") {
+                gruppe.frischeSumme += berechneFrischeScore(stats.lastPlayed);
+            }
+        }
+
+        /* DOKU: Mittelt die Frischesumme über alle Fragen einschließlich neuer Fragen. Leere Gruppen erhalten 0. */
+function berechneGruppenScore(gruppe) {
+            gruppe.fachScore = gruppe.gesamtAnzahl
+                ? Math.round(gruppe.frischeSumme / gruppe.gesamtAnzahl)
+                : 0;
+        }
+
+        /* DOKU: Lädt Inventar und Lernstände parallel und gruppiert nach Semester/Fach/Thema. Ein Datensatz mit mehreren bewertbaren Modi wird pro Inventareintrag einmal berücksichtigt. */
+async function ladeStatistik(uid) {
+            const [inventory, statsMap] = await Promise.all([
+                loadInventory(db, uid), loadAllStats(db, uid, {refresh: true})
+            ]);
+            const ergebnisse = Object.create(null);
+            for (const question of inventory) {
+                const {semester, subject, topic} = question;
+                if (!question.quizTypes.some(mode => ['RF', 'MC', 'BE'].includes(mode))) continue;
+                const semesterData = ergebnisse[semester] ??= { subjects: Object.create(null) };
+                const subjectData = semesterData.subjects[subject] ??= { ...leereGruppe(), topics: Object.create(null) };
+                const topicData = subjectData.topics[topic] ??= leereGruppe();
+                const stats = statsMap.get(question.id);
+                frageZuGruppe(subjectData, stats);
+                frageZuGruppe(topicData, stats);
+            }
+
+            for (const semesterData of Object.values(ergebnisse)) {
+                for (const subjectData of Object.values(semesterData.subjects)) {
+                    berechneGruppenScore(subjectData);
+                    for (const topicData of Object.values(subjectData.topics)) {
+                        berechneGruppenScore(topicData);
+                    }
+                }
+            }
+            return ergebnisse;
+        }
+
+
+        /* ============================================================
+           STATISTIK ANZEIGEN
+           ------------------------------------------------------------
+           Ein Fach zeigt den Gesamtstand seiner Fragen. Darunter stehen
+           die zugehörigen Themen mit jeweils eigenem Balken. Für die
+           Semester- und Gesamtwertung werden nur die Fachsummen
+           addiert, damit keine Frage doppelt gezählt wird.
+           ============================================================ */
+
+        /* DOKU: Baut die farbigen Anteile aus Kategorieanzahl geteilt durch Gesamtzahl auf. */
+function balkenErstellen(data) {
+            const bar = document.createElement("div");
+            bar.className = "subject-bar";
+            const segmente = [
+                ["neu", "bar-neu"], ["hoch", "bar-hoch"],
+                ["medium", "bar-medium"], ["gering", "bar-gering"]
+            ];
+            for (const [key, klasse] of segmente) {
+                const anzahl = data.kategorien[key];
+                if (!anzahl) continue;
+                const segment = document.createElement("div");
+                segment.className = "bar-segment " + klasse;
+                segment.style.width = (anzahl / data.gesamtAnzahl * 100) + "%";
+                bar.appendChild(segment);
+            }
+            return bar;
+        }
+
+        /* DOKU: Erstellt DOM-Elemente mit textContent für Namen, Anzahl und Frische; isTopic steuert die Darstellung als Unterzeile. */
+function zeileErstellen(name, data, isTopic = false) {
+            const row = document.createElement("div");
+            row.className = isTopic ? "topic-row" : "subject-row";
+            const label = document.createElement("div");
+            label.className = "subject-name";
+            label.textContent = name;
+            row.appendChild(label);
+            row.appendChild(balkenErstellen(data));
+            const meta = document.createElement("div");
+            meta.className = "subject-meta";
+            const count = document.createElement("span");
+            count.textContent = `${data.gesamtAnzahl} Fragen`;
+            const freshness = document.createElement("span");
+            freshness.className = "freshness";
+            freshness.textContent = `Frische: ${data.fachScore} %`;
+            meta.append(count, freshness);
+            row.appendChild(meta);
+            return row;
+        }
+
+        /* DOKU: Baut die Semesteransicht neu auf. Gesamtsummen stammen nur aus Fächern, damit die darunter aufgeführten Themen nicht doppelt zählen. */
+function renderStatistik(ergebnisse) {
+            const container = document.getElementById("statistikContainer");
+            container.replaceChildren();
+            let gesamtFragenSumme = 0;
+            let gesamtFrischeSumme = 0;
+
+            for (const semester of Object.keys(ergebnisse).sort(sortGerman)) {
+                const section = document.createElement("section");
+                section.className = "semester-section";
+                const header = document.createElement("div");
+                header.className = "semester-header";
+                const heading = document.createElement("h2");
+                heading.textContent = semesterLabel(semester);
+                const badge = document.createElement("span");
+                badge.className = "score-badge";
+                header.append(heading, badge);
+                section.appendChild(header);
+
+                let semesterFragenSumme = 0;
+                let semesterFrischeSumme = 0;
+                const subjects = ergebnisse[semester].subjects;
+                for (const subject of Object.keys(subjects).sort(sortGerman)) {
+                    const data = subjects[subject];
+                    section.appendChild(zeileErstellen(subject, data));
+                    for (const topic of Object.keys(data.topics).sort(sortGerman)) {
+                        section.appendChild(zeileErstellen(topic, data.topics[topic], true));
+                    }
+                    semesterFragenSumme += data.gesamtAnzahl;
+                    semesterFrischeSumme += data.frischeSumme;
+                }
+                badge.textContent = "Frische: " + (semesterFragenSumme
+                    ? Math.round(semesterFrischeSumme / semesterFragenSumme) : 0) + " %";
+                gesamtFragenSumme += semesterFragenSumme;
+                gesamtFrischeSumme += semesterFrischeSumme;
+                container.appendChild(section);
+            }
+            document.getElementById("gesamtScore").textContent =
+                (gesamtFragenSumme ? Math.round(gesamtFrischeSumme / gesamtFragenSumme) : 0) + " %";
+        }
+
+
+        /* ============================================================
+           LADEN + RENDERN AUSFÜHREN
+           ============================================================ */
+
+        /* DOKU: Koordiniert Ladeanzeige, Datenabfrage, Darstellung und Fehlermeldung. */
+async function ladeUndRenderStatistik(uid) {
+
+            const loadingEl = document.getElementById("statistikLoading");
+
+            try {
+
+                const ergebnisse = await ladeStatistik(uid);
+                renderStatistik(ergebnisse);
+
+            } catch (error) {
+
+                console.error("Statistik konnte nicht geladen werden:", error);
+                loadingEl.textContent =
+                    "Statistik konnte nicht geladen werden. Bitte später erneut versuchen.";
+                return;
+
+            }
+
+            loadingEl.hidden = true;
+
+        }
+
+
+        /* ============================================================
+           GLOBALER LOGOUT
+           ============================================================ */
+
+        window.addEventListener("fiaeTrainerLogout", async () => {
+
+            try {
+                await signOut(auth);
+                window.location.replace("login.html");
+            } catch (error) {
+                console.error("Firebase Logout fehlgeschlagen:", error);
+                alert("Der Logout konnte nicht durchgeführt werden.");
+            }
+
+        });
+
+    </script>
+
+    <!-- ============================================================
+         FOOTER-SCRIPTS
+         ============================================================ -->
+
+    <script src="/footer-config.js"></script>
+    <script src="/footer-app.js" defer></script>
+
+</body>
+</html>

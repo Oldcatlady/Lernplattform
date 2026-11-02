@@ -1,0 +1,21 @@
+<!doctype html>
+<!-- DOKU: Öffentliche Anmeldeseite mit E-Mail/Passwort und Passwortzurücksetzung über Firebase Authentication. Die lokale Kontofreigabe erfolgt zusätzlich über private-auth.js. -->
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FIAE Trainer – Privat anmelden</title><style>
+/* DOKU: Die eingebetteten Styles legen Seitenlayout, Theme-Farben und Zustände der Bedienelemente fest. CSS-Klassen wie hidden, correct oder wrong werden vom Seitenskript gesetzt; sie übernehmen keine Zugriffsprüfung. */
+body{font:16px Arial;background:#edf1f8;color:#203047;margin:0}main{max-width:420px;margin:10vh auto;background:#fff;padding:28px;border-radius:16px;box-shadow:0 5px 25px #0001}label{display:block;margin:18px 0 6px}input{box-sizing:border-box;width:100%;padding:12px;font:inherit;border:1px solid #bbc7da;border-radius:8px}button{font:inherit;cursor:pointer;padding:12px;border:0;border-radius:8px;background:#315efb;color:white;margin-top:20px}button:disabled{opacity:.5}p{line-height:1.5}#privateLoginError{color:#a32626}#reset{display:block;background:none;color:#315efb;padding:0}</style></head><body><main><h1>FIAE Trainer</h1><p>Deine private Lernplattform</p><form id="login"><label for="email">E-Mail</label><input id="email" type="email" autocomplete="username" required><label for="password">Passwort</label><input id="password" type="password" autocomplete="current-password" required><button id="submit">Anmelden</button></form><button id="reset">Passwort vergessen?</button><p id="privateLoginError" role="status"></p></main>
+<script type="module">
+import {initializeApp} from 'https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js';
+import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from 'https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js';
+import {firebaseConfig,privateSettings,requirePrivateSetup} from './firebase-config.js';
+import {onAuthStateChanged} from './private-auth.js';
+const $=id=>document.getElementById(id);let auth;
+try{requirePrivateSetup();auth=getAuth(initializeApp(firebaseConfig));onAuthStateChanged(auth,user=>{if(user)location.replace('quizBit.html');});}
+catch(error){$('privateLoginError').textContent=error.message;$('submit').disabled=true;}
+/* DOKU: Unterbindet das normale Formularsenden und übergibt E-Mail und Passwort an Firebase Authentication. Die Anwendung speichert das Passwort hier nicht selbst. */
+$('login').addEventListener('submit',async event=>{event.preventDefault();if(!auth)return;$('submit').disabled=true;$('privateLoginError').textContent='';
+try{const {user}=await signInWithEmailAndPassword(auth,$('email').value.trim(),$('password').value);if(user.uid!==privateSettings.ownerUid){await signOut(auth);$('privateLoginError').textContent='Dieses Konto hat keinen Zugang.';}else location.replace('quizBit.html');}
+catch(error){$('privateLoginError').textContent='Anmeldung fehlgeschlagen. Bitte E-Mail und Passwort prüfen.';}finally{$('submit').disabled=false;}});
+/* DOKU: Fordert bei Firebase eine Zurücksetzungs-E-Mail für die eingegebene Adresse an. Dies ist keine lokale Passwortänderung. */
+$('reset').addEventListener('click',async()=>{if(!auth)return;if(!$('email').value.trim()){$('privateLoginError').textContent='Bitte zuerst deine E-Mail eintragen.';return;}
+try{await sendPasswordResetEmail(auth,$('email').value.trim());$('privateLoginError').textContent='Falls das Konto existiert, wurde eine Reset-E-Mail angefordert.';}catch{$('privateLoginError').textContent='Reset-E-Mail konnte nicht angefordert werden.'}});
+</script></body></html>

@@ -1,0 +1,85 @@
+<!doctype html>
+<!-- DOKU: Gemischtes Training: Wählt pro Frage den ersten vorhandenen Typ in der Reihenfolge BE, MC, RF, FC. Somit wird eine MC/FC-Frage als MC behandelt. -->
+
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FIAE Trainer – Gemischtes Training</title>
+<style>
+/* DOKU: Die eingebetteten Styles legen Seitenlayout, Theme-Farben und Zustände der Bedienelemente fest. CSS-Klassen wie hidden, correct oder wrong werden vom Seitenskript gesetzt; sie übernehmen keine Zugriffsprüfung. */
+*{box-sizing:border-box}body{font-family:Arial,sans-serif;background:#f4f6fb;color:#1f2937;margin:0}main{max-width:850px;margin:30px auto;padding:20px}section{background:white;border:1px solid #dae0ec;border-radius:14px;padding:24px;margin:20px 0}button,input{font:inherit;border-radius:8px;padding:12px;border:1px solid #bcc8dc}button{cursor:pointer;background:white;color:#1938aa}button:disabled{cursor:default;opacity:.55}.chosen{background:#dce5ff;border-color:#315efb}.correct{background:#dff5e9}.wrong{background:#ffe2e2}#options{display:grid;gap:10px;margin:20px 0}#options button{text-align:left}#entry{width:100%;margin:15px 0}#explanation{white-space:pre-wrap;line-height:1.6}#question{white-space:pre-wrap}progress{width:100%}[hidden]{display:none!important}a{color:#315efb}#status[role=alert]{color:#a32626}
+
+/* Kompakte Ergebnisansicht: Note zuerst, keine Fragenliste. */
+#finish { text-align:center; }
+#finish h2 { font-size:1.15rem; margin:.5rem 0; }
+#finish .grade-label { margin:.8rem 0 0; font-size:1rem; }
+#grade { display:block; font-size:clamp(3.5rem,14vw,5rem); font-weight:800; line-height:1.1; }
+#summary { margin:.7rem 0; font-size:1.1rem; font-weight:650; }
+#finish .result-actions { margin-top:1rem; gap:.65rem; }
+#finish .result-actions .primary { width:auto; flex:initial; margin:0; padding:.65rem 1rem; }
+#finish .result-actions { justify-content:center; }
+</style></head><body><main><a href="quizBit.html">← Zur Auswahl</a><h1>Gemischtes IHK-Training</h1><p id="status" role="status">Anmeldung wird geprüft …</p><section id="training" hidden><p id="meta"></p><progress id="progress" value="0" max="1"></progress><h2 id="question"></h2><div id="options"></div><input id="entry" aria-label="Deine Antwort" hidden><button id="check">Antwort prüfen</button><p id="verdict" aria-live="polite"></p><p id="explanation" hidden></p><button id="next" hidden>Weiter</button></section><section id="finish" hidden><h2>Durchlauf abgeschlossen</h2><p class="grade-label">Deine Note<strong id="grade"></strong></p><p id="result"></p><div class="result-actions"><button id="restart" type="button">Neu mischen und nochmal spielen</button><a href="quizBit.html">Beenden</a></div></section></main>
+<script type="module">
+import {queueAnswer} from './private-sync.js';
+import {onAuthStateChanged,signOut} from './private-auth.js';
+import {initializeApp} from 'https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js';
+import { getAuth } from 'https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js';
+import {getFirestore} from 'https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js';
+import {firebaseConfig} from './firebase-config.js';
+import {loadRoundQuestions,clearDataCache,readQuizSelection} from './quiz-data.js';
+const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
+const $=id=>document.getElementById(id);
+let user,round=[],index=0,mode,chosen=new Set(),busy=false,answered=false,correct=0,scored=0,viewed=0;
+const normalize=value=>String(value).trim().normalize('NFKC').replace(/\s+/g,' ').toLocaleLowerCase('de');
+/* DOKU: Gibt den ersten unterstützten Modus gemäß fester Priorität zurück. Die Quizart wird nicht zufällig pro Frage ausgewählt. */
+function preferred(q){return ['BE','MC','RF','FC'].find(type=>q.quizTypes.includes(type));}
+/* DOKU: Stellt die aktuelle Frage dar und setzt nur die Bedienelemente für diesen Frageschritt zurück. */
+function render(){
+ const q=round[index];mode=preferred(q);chosen.clear();answered=false;
+ $('meta').textContent=`${index+1} / ${round.length} · Semester ${q.semester} · ${q.subject} · ${q.topic} · ${mode}`;
+ $('question').textContent=q.Frage;$('options').replaceChildren();$('entry').value='';$('entry').disabled=false;$('entry').hidden=mode!=='BE';
+ $('explanation').hidden=true;$('verdict').textContent='';$('check').hidden=false;$('check').disabled=false;$('next').hidden=true;
+ $('check').textContent=mode==='FC'?'Lösung ansehen':'Antwort prüfen';
+ if(mode==='MC'||mode==='RF') {
+  const entries=mode==='MC'?['A','B','C','D'].map(letter=>[letter,`${letter}: ${q['Antwortoption '+letter]}`]):[['Richtig','Richtig'],['Falsch','Falsch']];
+  for(const [value,label] of entries){const button=document.createElement('button');button.textContent=label;button.dataset.value=value;
+   button.addEventListener('click',()=>{if(answered||busy)return;if(mode==='RF'){chosen.clear();$('options').querySelectorAll('button').forEach(b=>b.classList.remove('chosen'));}if(chosen.has(value))chosen.delete(value);else chosen.add(value);button.classList.toggle('chosen',chosen.has(value));});$('options').append(button);}
+ }
+ $('progress').value=index;$('progress').max=round.length;
+}
+/* DOKU: Lädt die Fragen erst für das freigegebene Konto. Die UID-Prüfung kommt aus private-auth.js; Firestore muss Zugriffe zusätzlich serverseitig erlauben. queueAnswer sichert Antworten lokal vor dem zeitversetzten Cloud-Abgleich. */
+onAuthStateChanged(auth,async current=>{
+ if(!current){clearDataCache();location.replace('login.html');return;}if(user?.uid===current.uid)return;
+ user=current;
+ try{const selection=readQuizSelection();if(selection?.quizType!=='MIXED')throw new Error('Bitte gemischtes Training im Dashboard auswählen.');
+ round=await loadRoundQuestions(db,user.uid,selection);$('status').textContent='';$('training').hidden=false;render();}
+ catch(error){$('status').textContent=error.message;$('status').setAttribute('role','alert');}
+});
+/* DOKU: Prüft je nach Modus Set-Gleichheit, Richtig/Falsch oder Texteingabe. BE verwendet hier NFKC, Kleinschreibung und zusammengefasste Leerzeichen; anders als be.html werden Bindestriche nicht entfernt. FC zählt ausschließlich eine Ansicht. */
+$('check').addEventListener('click',async()=>{
+ if(busy||answered||!user||!round.length)return;
+ if((mode==='MC'||mode==='RF')&&!chosen.size)return;if(mode==='BE'&&!$('entry').value.trim())return;
+ const q=round[index];let right=[],isCorrect=false;
+ if(mode==='MC'){right=String(q['Korrekte-Antwort']).split(',').map(s=>s.trim());isCorrect=right.length===chosen.size&&right.every(v=>chosen.has(v));}
+ if(mode==='RF'){right=[q['Korrekte-Antwort']];isCorrect=chosen.has(right[0]);}
+ if(mode==='BE'){right=Array.isArray(q.Eingabe)?q.Eingabe:[q.Eingabe];isCorrect=right.some(v=>normalize(v)===normalize($('entry').value));}
+ busy=true;$('check').disabled=true;$('status').textContent='Lernstand wird gespeichert …';
+ try{await queueAnswer(db,user.uid,q,{isCorrect,viewed:mode==='FC',type:mode});answered=true;
+ if(mode==='FC'){viewed++;$('verdict').textContent='Angesehen – ohne Punktebewertung.';
+ right=String(q['Korrekte-Antwort']).split(',').map(v=>q['Antwortoption '+v.trim()]||v.trim());}
+ else{scored++;if(isCorrect)correct++;$('verdict').textContent=isCorrect?'Richtig.':'Leider falsch.';}
+ $('explanation').textContent=`Lösung: ${right.join('; ')}\n\n${q.Erklärung}`;$('explanation').hidden=false;
+ $('options').querySelectorAll('button').forEach(b=>{b.disabled=true;if(right.includes(b.dataset.value))b.classList.add('correct');else if(chosen.has(b.dataset.value))b.classList.add('wrong');});
+ $('entry').disabled=true;$('check').hidden=true;$('next').hidden=false;$('progress').value=index+1;$('status').textContent='';
+ }catch(error){$('status').textContent='Speichern fehlgeschlagen. Bitte erneut versuchen.';$('check').disabled=false;console.error(error);}finally{busy=false;}
+});
+/* DOKU: Berechnet die Note aus bewerteten Antworten; FC-Ansichten zählen nicht zum Nenner. Ohne bewertete Frage erscheint statt einer Note ein Strich. */
+$('next').addEventListener('click',()=>{if(!answered||busy)return;index++;if(index<round.length)render();else{$('training').hidden=true;$('finish').hidden=false;const percent=scored?Math.round(correct/scored*100):0;
+ $('grade').textContent=scored?(percent>=92?1:percent>=81?2:percent>=67?3:percent>=50?4:percent>=30?5:6):'–';
+ $('result').textContent=scored?`${correct} richtig, ${scored-correct} falsch`:`${viewed} Karten gelernt`;
+ window.scrollTo({top:0,left:0,behavior:'instant'});}});
+$('restart').addEventListener('click',()=>{
+ if(busy||!round.length)return;
+ for(let i=round.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[round[i],round[j]]=[round[j],round[i]];}
+ index=correct=scored=viewed=0;
+ $('finish').hidden=true;$('training').hidden=false;render();
+ window.scrollTo({top:0,left:0,behavior:'instant'});
+});
+</script></body></html>

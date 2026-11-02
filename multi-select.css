@@ -1,0 +1,19 @@
+/* DOKU: Styles des details/summary-Steuerelements aus multi-select.js: aufgeklapptes Auswahlpanel, Checkboxliste, Aktionen und gesperrter Zustand. */
+.multi-select { position:relative; color:var(--text-main); }
+.multi-select summary { list-style:none; cursor:pointer; padding:14px 40px 14px 16px; min-height:50px; border:1px solid var(--border, #71836a); border-radius:12px; background:var(--card-bg); line-height:1.5; overflow-wrap:anywhere; }
+.multi-select summary::-webkit-details-marker { display:none; }
+.multi-select summary::after { content:'⌄'; position:absolute; right:16px; top:14px; }
+.multi-select[open] { z-index:10; }
+.multi-select[open] summary::after { content:'⌃'; }
+.multi-select :focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
+.multi-select.is-disabled { opacity:.6; }
+.multi-select.is-disabled summary { cursor:not-allowed; }
+.multi-panel { position:absolute; top:calc(100% + 6px); left:0; width:100%; min-width:220px; padding:10px; border:1px solid var(--border, #71836a); border-radius:14px; background:var(--card-bg); box-shadow:0 16px 40px #0005; }
+.multi-actions { display:flex; gap:8px; flex-wrap:wrap; padding:4px 4px 10px; }
+.multi-actions button { font:inherit; font-size:.85rem; cursor:pointer; border:1px solid var(--border, #71836a); border-radius:8px; padding:8px; background:var(--card-a); color:var(--text-main); }
+.multi-options { max-height:280px; overflow-y:auto; }
+.multi-options label { display:flex; align-items:center; gap:12px; padding:11px 8px; margin:0; font-weight:400; cursor:pointer; border-radius:8px; line-height:1.5; }
+.multi-options label:hover { background:var(--card-a); }
+.multi-options input { width:18px; height:18px; flex-shrink:0; accent-color:var(--accent); }
+.multi-options span { overflow-wrap:anywhere; min-width:0; }
+.multi-select.invalid summary { border:2px solid var(--wrong); }
